@@ -1,0 +1,90 @@
+[   0.07s] MongoDB 9.0.4  :27018 PRIMARY  :27019 SECONDARY  :27020 SECONDARY
+
+================================================================================================
+R0  Replica set topology
+================================================================================================
+[   0.07s] set 'rs0', protocolVersion 1, electionTimeoutMillis 10000, heartbeatIntervalMillis 2000
+[   0.07s]   member 0  127.0.0.1:27018  priority 2.0  votes 1  PRIMARY
+[   0.07s]   member 1  127.0.0.1:27019  priority 1.0  votes 1  SECONDARY
+[   0.07s]   member 2  127.0.0.1:27020  priority 1.0  votes 1  SECONDARY
+[   0.07s] majority = 2 of 3 votes; the set tolerates 1 failed member(s)
+
+================================================================================================
+R1  Load hospital data through the primary; it is replicated to every member
+================================================================================================
+[  35.05s] loaded 50,000 patients and 43,915 encounters (May-Nov 2026) with w:majority in 35.0s
+[  37.95s]   :27018 PRIMARY   patients=50,000 encounters=43,915 dbHash(encounters)=ae5c25eacb3f
+[  40.29s]   :27019 SECONDARY patients=50,000 encounters=43,915 dbHash(encounters)=ae5c25eacb3f
+[  41.93s]   :27020 SECONDARY patients=50,000 encounters=43,915 dbHash(encounters)=ae5c25eacb3f
+[  41.93s] identical hashes = byte-identical data on all three members
+[  41.94s] oplog: 437 entries, 108.9 MB used of 256 MB cap, window 142 s
+[  41.96s] oplog entry for a phone-number update: op=u ns=stgrace_hospital.patients o2={'_id': 1} o={'$v': 2, 'diff': {'scontact': {'u': {'phone': '08035550101'}}}}
+[  41.96s] secondaries pull these entries and re-apply them; the entry is idempotent ($v:2 diff), not the original command
+
+================================================================================================
+R2  Write concern: how much durability each acknowledgement buys, and what it costs
+================================================================================================
+[  47.37s]   w:0 (fire and forget)            median   0.43 ms   p95   1.75 ms
+[  47.37s]   w:1 (primary memory)             median   3.32 ms   p95   7.25 ms
+[  47.37s]   w:1, j:true (primary journal)    median   4.25 ms   p95   8.31 ms
+[  47.37s]   w:majority (2 of 3)              median   5.23 ms   p95   9.40 ms
+[  47.37s]   w:3 (all members)                median   4.81 ms   p95   8.88 ms
+[  47.42s] survives primary crash?  w:0 no | w:1 no (may be rolled back) | j:true not if the disk is lost | w:majority yes | w:3 yes, but blocks if any member is down
+
+================================================================================================
+R3  Replication lag: pause member :27020 and watch consistency guarantees
+================================================================================================
+[  47.49s] fail point stopReplProducer ON at :27020 - it stops fetching the oplog (simulates a slow WAN link)
+[  47.49s] primary: patient 50000 phone changed 08094691841 -> 08039990000 (w:1)
+[  48.52s]   read from :27018 -> 08039990000
+[  48.54s]   read from :27019 -> 08039990000
+[  48.56s]   read from :27020 -> 08094691841   <-- STALE
+[  48.56s] w:majority write: acknowledged (primary + the healthy secondary = 2 of 3)
+[  51.58s] w:3 write: wtimeout after 3 s - waiting for replication timed out (the write IS applied on the primary; only the acknowledgement failed)
+[  51.60s] causal session: wrote a new e-mail address on the primary
+[  54.60s] causal read on lagging :27020 -> ExecutionTimeout: it WAITS for the write rather than return stale data, and gives up after maxTimeMS=3000
+[  54.63s] fail point OFF; :27020 catches up
+[  56.63s]   read from :27020 -> phone 08039990000, email demo@causal.example  (eventually consistent)
+[  56.64s]   127.0.0.1:27018  PRIMARY   lag 0.0 s
+[  56.64s]   127.0.0.1:27019  SECONDARY lag 0.0 s
+[  56.64s]   127.0.0.1:27020  SECONDARY lag 5.0 s
+
+================================================================================================
+R4  Multi-document ACID transactions (refused by the standalone server in Portfolio 4, F6)
+================================================================================================
+[  56.68s]   before                 encounter billing.status=Unpaid  paid=0.00  patient outstanding=155761.13
+[  56.68s] transaction 1: pay the invoice, then fail before commit (e.g. the POS terminal declines)
+[  56.70s]   aborted: POS declined
+[  56.70s]   after abort            encounter billing.status=Unpaid  paid=0.00  patient outstanding=155761.13
+[  56.70s] transaction 2: pay the invoice and commit
+[  56.72s]   after commit           encounter billing.status=Paid    paid=24500.00  patient outstanding=131261.13
+[  56.72s] write conflict: two cashiers' transactions update the same encounter
+[  56.72s]   T1 updated the encounter (not yet committed)
+[  56.73s]   T2 -> code 112 WriteConflict, labels ['TransientTransactionError']: no waiting, T2 is aborted immediately and should be retried
+[  56.75s]   (with_transaction() retries TransientTransactionError automatically)
+
+================================================================================================
+R5  Automatic failover: kill the PRIMARY process while a front-desk client keeps booking
+================================================================================================
+[  56.77s] :27018 PRIMARY  :27019 SECONDARY  :27020 SECONDARY
+[  59.81s] KILLED primary :27018 (pid 8368)
+[  79.42s] new PRIMARY :27020 elected 16.5 s after the crash   [:27018 DOWN  :27019 SECONDARY  :27020 PRIMARY]
+[  82.45s] front desk: 166 bookings attempted, 166 succeeded, 0 failed
+[  82.45s]   normal latency median 5.0 ms; slowest booking 16.0 s (it waited for the election, then was retried)
+[  82.45s]   bookings in flight during the election: 10
+[  82.50s]   documents stored: 166 (= 166 acknowledged; w:majority writes are never lost on failover)
+[  82.50s] restarting the crashed member :27018
+[  97.11s]   :27018 rejoined as SECONDARY after 14.6 s and caught up from the oplog
+[ 107.55s]   :27018 has priority 2, so once caught up it called an election and took PRIMARY back (25.0 s after restart)   [:27018 PRIMARY  :27019 SECONDARY  :27020 SECONDARY]
+
+================================================================================================
+R6  Loss of majority: two members go down (e.g. the link to the server room is cut)
+================================================================================================
+[ 141.37s] stopped :27019 and :27020; only :27018 remains (1 of 3 votes)
+[ 142.44s] :27018 stepped down to SECONDARY after 1.1 s - it can no longer prove it is the only primary
+[ 145.50s] write: REFUSED (ServerSelectionTimeoutError) - consistency is kept by giving up write availability
+[ 145.56s] read with readPreference=secondaryPreferred: {'_id': 1, 'hospital_no': 'SGH-0000001', 'name': {'first': 'Patience', 'last': 'Bello'}}  - clinicians can still look up records (possibly stale)
+[ 145.56s] restarting the two members
+[ 163.93s] majority restored; PRIMARY available again after 18.3 s   [:27018 PRIMARY  :27019 SECONDARY  :27020 SECONDARY]
+
+[ 163.99s] final state: :27018 PRIMARY  :27019 SECONDARY  :27020 SECONDARY

@@ -1,0 +1,63 @@
+[   0.00s] mongos 9.0.4
+
+================================================================================================
+S0  Sharded cluster topology
+================================================================================================
+[   0.01s]   shard shardA  host shardA/127.0.0.1:27031  state None
+[   0.01s]   shard shardB  host shardB/127.0.0.1:27032  state None
+[   0.01s]   config server replica set 'cfg' (metadata: which chunk lives where), router mongos :27040
+[   0.01s]   balancer running: full
+
+================================================================================================
+S1  Hashed shard key: encounters sharded on hash(patient.patient_id)
+================================================================================================
+[   0.92s] shardCollection encounters key {patient.patient_id: 'hashed'}
+[  16.18s] inserted 43,915 encounters through mongos in 9.6s
+[  16.18s]   shardA: 21,904 documents (49.9%)
+[  16.18s]   shardB: 22,011 documents (50.1%)
+[  16.19s]   chunks per shard (config.chunks): {'shardA': 1, 'shardB': 1}
+[  16.19s] hashing spreads patients pseudo-randomly, so data and write load are balanced, and all of one patient's visits stay together on one shard
+
+================================================================================================
+S2  Query routing by mongos
+================================================================================================
+[  16.64s]   history by patient_id (shard key)            SINGLE_SHARD shards ['shardA']   11.57 ms  74 docs
+[  16.75s]   history by hospital_no (not the shard key)   SHARD_MERGE_SORT shards ['shardA', 'shardB']   11.63 ms  74 docs
+[  17.49s]   weekly malaria aggregation (no shard key)    router       shards ['shardA', 'shardB']   81.49 ms
+[  17.49s]     shard part: ['$match', '$group']  merge part: ['$mergeCursors', '$group', '$sort']
+[  17.49s] targeted queries touch one shard; anything without the shard key is scatter-gather: every shard works and mongos merges, so cost grows with the number of shards
+
+================================================================================================
+S3  Zone sharding: St. Grace opens an Abuja branch; each branch's patients stay on its own shard
+================================================================================================
+[  17.60s] zones: shardB = ABUJA [MinKey .. {LAGOS, MinKey}), shardA = LAGOS [{LAGOS, MinKey} .. MaxKey)
+[  17.89s] shardCollection patients key {branch: 1, _id: 1}  (compound: branch first, then patient id)
+[  21.33s] inserted 50,000 patients: {'ABUJA': 18435, 'LAGOS': 31565}
+[  21.33s]   shardA: 31,565 patients
+[  21.33s]   shardB: 18,435 patients
+[  21.34s]   query {'branch': 'ABUJA'}                      -> SINGLE_SHARD on ['shardB']
+[  21.34s]   query {'branch': 'LAGOS', '_id': 2}            -> SINGLE_SHARD on ['shardA']
+[  21.34s]   query {'hospital_no': 'SGH-0000002'}           -> SHARD_MERGE  on ['shardB', 'shardA']
+[  21.34s] use: data residency and locality - each branch's server holds and serves its own patients; head-office reports still see all patients through mongos
+
+================================================================================================
+S4  Range shard key on a timestamp vs hashed: where do new bookings go?
+================================================================================================
+[  21.45s] balancer stopped so chunk placement stays as configured
+[  22.00s] appt_range: range key scheduled_start; chunks [MinKey, 2026-11-01) on shardA, [2026-11-01, MaxKey) on shardB
+[  22.20s] appt_hashed: same data, hashed key on scheduled_start
+[  27.56s] inserted the same 2,000 new (future) appointments into both
+[  27.56s]   range key  : {'shardA': 0, 'shardB': 2000}  <- every new booking hits ONE shard
+[  27.56s]   hashed key : {'shardA': 1037, 'shardB': 963}
+[  27.57s]   'all bookings on 4 Nov' -> range key: ['shardB'];  hashed key: ['shardA', 'shardB']
+[  27.57s] trade-off: a monotonically increasing range key makes date-range queries targeted but sends all inserts to the last chunk (hot shard); hashing spreads inserts but turns range queries into scatter-gather
+
+================================================================================================
+S5  A shard goes down (shardB)
+================================================================================================
+[  30.66s] shardB stopped
+[  30.68s]   targeted query for patient 1857 (lives on shardA): OK, 1 encounters
+[  38.68s]   scatter-gather count: FAILED (ExecutionTimeout) - needs every shard
+[  46.65s]   find with allowPartialResults: 21,904 of 43,915 documents (only shardA's share) - degraded but available
+[  55.74s] shardB restarted; full count again: 43,915
+[  55.74s] each shard here is a 1-member replica set to save memory; in production every shard is a 3-member replica set, so a single server failure would trigger an election instead of an outage
