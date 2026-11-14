@@ -1,0 +1,151 @@
+SET
+================ SETUP: demo drugs, prescriptions and an admission ================
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 2
+ drug_id |   generic_name   | stock_quantity 
+---------+------------------+----------------
+      21 | DEMO Paracetamol |            100
+      22 | DEMO Artesunate  |             10
+
+
+================ T1  COMMIT: dispense prescription :rx_ok (6 x Paracetamol, 2 x Artesunate) ================
+BEGIN
+ lines_dispensed 
+-----------------
+               2
+
+--- inside the transaction, this session already sees the new stock:
+ drug_id |   generic_name   | stock_quantity 
+---------+------------------+----------------
+      21 | DEMO Paracetamol |             94
+      22 | DEMO Artesunate  |              8
+
+COMMIT
+--- after COMMIT the change is durable and visible to everyone; the audit trail groups it by txid:
+ prescription_id |  status   | dispensed_by 
+-----------------+-----------+--------------
+          140055 | Dispensed |          306
+
+ table_name | operation | row_key |        old_data         |        new_data        | txid 
+------------+-----------+---------+-------------------------+------------------------+------
+ drugs      | UPDATE    | 21      | {"stock_quantity": 100} | {"stock_quantity": 94} | 1317
+ drugs      | UPDATE    | 22      | {"stock_quantity": 10}  | {"stock_quantity": 8}  | 1317
+
+
+================ T2  Automatic ROLLBACK: prescription :rx_fail needs 20 Artesunate, only 8 left ================
+--- Paracetamol (lower drug_id) is decremented first, then the Artesunate check fails:
+BEGIN
+psql:sql/02_transaction_basics.sql:66: ERROR:  Insufficient stock of DEMO Artesunate: need 20, have 8
+CONTEXT:  PL/pgSQL function dispense_prescription(integer,integer) line 28 at RAISE
+--- the transaction is now aborted; PostgreSQL refuses further work until it ends:
+psql:sql/02_transaction_basics.sql:68: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+--- Paracetamol is still 94 (its decrement was undone) and the prescription is still Pending:
+ drug_id |   generic_name   | stock_quantity 
+---------+------------------+----------------
+      21 | DEMO Paracetamol |             94
+      22 | DEMO Artesunate  |              8
+
+ prescription_id | status  | drug_id | quantity | dispensed_quantity 
+-----------------+---------+---------+----------+--------------------
+          140056 | Pending |      21 |        6 |                  0
+          140056 | Pending |      22 |       20 |                  0
+
+
+================ T3  Explicit ROLLBACK: a pharmacist mistypes a price change ================
+BEGIN
+UPDATE 1
+   generic_name   | price_inside_tx 
+------------------+-----------------
+ DEMO Paracetamol |          200.00
+
+ROLLBACK
+   generic_name   | price_after_rollback 
+------------------+----------------------
+ DEMO Paracetamol |                20.00
+
+
+================ T4  SAVEPOINT: discharge, bill, then an insurance step that fails ================
+ admission_id | bed_id |        admitted_at         | discharged_at 
+--------------+--------+----------------------------+---------------
+         9739 |     21 | 2026-11-03 21:55:23.274025 | 
+
+BEGIN
+UPDATE 1
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+SAVEPOINT
+--- optional step: automatic insurance claim posts the wrong amount and fails:
+psql:sql/02_transaction_basics.sql:99: ERROR:  Payment of 999999 exceeds outstanding balance of 30000.00 on invoice 172708
+CONTEXT:  PL/pgSQL function record_payment(integer,numeric,text,integer) line 18 at RAISE
+--- undo only the failed step, keep the discharge and the invoice:
+ROLLBACK
+--- the patient pays part of the bill at the desk instead:
+ invoice_status 
+----------------
+ Partial
+
+COMMIT
+ admission_id | discharged | bed_number | bed_status 
+--------------+------------+------------+------------
+         9739 | t          | Gen-01     | Available
+
+   invoice_no   | total_amount | amount_paid | balance_due | status  
+----------------+--------------+-------------+-------------+---------
+ INV-DEMO-P3-01 |     30000.00 |    15000.00 |    15000.00 | Partial
+
+ payment_id |  amount  | method 
+------------+----------+--------
+     227854 | 15000.00 | POS
+
+
+================ T5  MVCC: every UPDATE writes a new row version ================
+ xmin | xmax |  ctid  | stock_quantity 
+------+------+--------+----------------
+ 1317 | 1319 | (0,23) |             94
+
+BEGIN
+ my_txid 
+---------
+    1323
+
+UPDATE 1
+--- new version: xmin is now this transaction, ctid (physical location) changed:
+ xmin | xmax |  ctid  | stock_quantity 
+------+------+--------+----------------
+ 1323 |    0 | (0,27) |             93
+
+ROLLBACK
+--- after ROLLBACK the old version is current again; the dead one waits for VACUUM:
+ xmin | xmax |  ctid  | stock_quantity 
+------+------+--------+----------------
+ 1317 | 1323 | (0,23) |             94
+
+
+================ T6  Statement atomicity: take 50 of each demo drug in ONE UPDATE ================
+--- Paracetamol has enough (94), Artesunate does not (8); the CHECK fails on the second row:
+psql:sql/02_transaction_basics.sql:125: ERROR:  new row for relation "drugs" violates check constraint "drugs_stock_quantity_check"
+DETAIL:  Failing row contains (22, DEMO Artesunate, null, Injection, 60 mg, 2500.00, -42, 50).
+ drug_id |   generic_name   | stock_quantity 
+---------+------------------+----------------
+      21 | DEMO Paracetamol |             94
+      22 | DEMO Artesunate  |              8
+
+
+================ CLEANUP: remove demo rows (the audit trail is kept) ================
+BEGIN
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 4
+DELETE 2
+DELETE 2
+COMMIT
+Done.

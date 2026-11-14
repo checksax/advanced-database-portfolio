@@ -1,0 +1,8 @@
+2026-11-03 21:57:53 WAT ERROR:  deadlock detected
+2026-11-03 21:57:53 WAT DETAIL:  Process 14900 waits for ShareLock on transaction 1473; blocked by process 22424.
+	Process 22424 waits for ShareLock on transaction 1472; blocked by process 14900.
+	Process 14900: UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 26
+	Process 22424: UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 25
+2026-11-03 21:57:53 WAT HINT:  See server log for query details.
+2026-11-03 21:57:53 WAT CONTEXT:  while updating tuple (0,82) in relation "drugs"
+2026-11-03 21:57:53 WAT STATEMENT:  UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 26

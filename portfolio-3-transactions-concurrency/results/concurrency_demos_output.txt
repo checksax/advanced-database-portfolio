@@ -1,0 +1,392 @@
+Sessions: A = pid 14900, B = pid 22424, monitor M = pid 22168
+[  0.23s] M | SHOW server_version
+[  0.23s] M |   -> ('18.6',)
+[  0.23s] M | SHOW default_transaction_isolation
+[  0.23s] M |   -> ('read committed',)
+[  0.23s] M | SHOW deadlock_timeout
+[  0.23s] M |   -> ('1s',)
+PostgreSQL 18.6, default isolation read committed, deadlock_timeout 1s
+[  0.23s] M | INSERT INTO drugs (generic_name, dosage_form, strength, unit_price, stock_quantity) VALUES ('DEMO Amoxicillin', 'Capsule', '500 mg', 60, 100) RETURNING drug_id
+[  0.24s] M |   -> (25,)
+[  0.24s] M | INSERT INTO drugs (generic_name, dosage_form, strength, unit_price, stock_quantity) VALUES ('DEMO Ceftriaxone', 'Injection', '1 g', 1500, 100) RETURNING drug_id
+[  0.24s] M |   -> (26,)
+[  0.24s] M | SELECT encounter_id, doctor_id FROM encounters WHERE encounter_type = 'Outpatient' ORDER BY encounter_id LIMIT 1
+[  0.25s] M |   -> (11, 43)
+[  0.25s] M | SELECT patient_id FROM encounters WHERE encounter_id = 11
+[  0.25s] M |   -> (1483,)
+[  0.25s] M | SELECT min(staff_id) FROM staff WHERE role = 'Cashier'
+[  0.25s] M |   -> (321,)
+[  0.25s] M | SELECT min(staff_id) FROM staff WHERE role = 'Pharmacist'
+[  0.25s] M |   -> (306,)
+[  0.25s] M | INSERT INTO invoices (invoice_no, patient_id, encounter_id) VALUES ('INV-DEMO-P3-C', 1483, 11) RETURNING invoice_id
+[  0.26s] M |   -> (172710,)
+[  0.26s] M | INSERT INTO invoice_items (invoice_id, item_type, description, quantity, unit_price) VALUES (172710, 'Consultation', 'DEMO consultation', 1, 10000)
+[  0.27s] M | SELECT p.patient_id FROM patients p WHERE NOT EXISTS (SELECT 1 FROM admissions a WHERE a.patient_id = p.patient_id AND a.discharged_at IS NULL) ORDER BY p.patient_id DESC LIMIT 2
+[  0.27s] M |   -> [(50000,), (49999,)]
+[  0.27s] M | SELECT b.bed_id, b.status FROM beds b JOIN wards w USING (ward_id) WHERE w.ward_type = 'ICU' ORDER BY b.bed_id
+[  0.28s] M |   -> [(101, 'Available'), (102, 'Occupied'), (103, 'Available'), (104, 'Occupied'), (105, 'Available'), (106, 'Occupied'), (107, 'Available'), (108, 'Available')]
+
+====================================================================================================
+C1  Lost update: two pharmacists dispense DEMO Amoxicillin at the same time (stock 100, take 10 and 5)
+====================================================================================================
+           # Correct final stock is 100 - 10 - 5 = 85.
+
+--- C1a  READ COMMITTED, application reads stock then writes an absolute value
+[  0.01s] A | BEGIN ISOLATION LEVEL READ COMMITTED
+[  0.01s] B | BEGIN ISOLATION LEVEL READ COMMITTED
+[  0.01s] A | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  0.01s] A |   -> (100,)
+[  0.01s] B | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  0.02s] B |   -> (100,)
+[  0.02s] A | UPDATE drugs SET stock_quantity = 90 WHERE drug_id = 25
+[  0.03s] A | COMMIT
+[  0.04s] B | UPDATE drugs SET stock_quantity = 95 WHERE drug_id = 25
+[  0.05s] B | COMMIT
+[  0.05s] M | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  0.05s] M |   -> (95,)
+[  0.05s] M | final stock = 95
+           >>> RESULT: ANOMALY: stock 95, A's 10 capsules vanished from the books
+
+--- C1b  Fix 1: relative UPDATE (stock = stock - n): the second writer waits and re-reads
+[  0.05s] A | BEGIN
+[  0.05s] B | BEGIN
+[  0.05s] A | UPDATE drugs SET stock_quantity = stock_quantity - 10 WHERE drug_id = 25
+[  0.06s] B | UPDATE drugs SET stock_quantity = stock_quantity - 5 WHERE drug_id = 25   (sent ...)
+[  0.69s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+[  0.69s] A | COMMIT
+[  0.70s] B |   ... completed -> None
+[  0.70s] B | COMMIT
+[  0.70s] M | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  0.70s] M |   -> (85,)
+[  0.70s] M | final stock = 85
+           >>> RESULT: PREVENTED: stock 85
+
+--- C1c  Fix 2: pessimistic lock, SELECT ... FOR UPDATE before computing
+[  0.70s] A | BEGIN
+[  0.70s] B | BEGIN
+[  0.70s] A | SELECT stock_quantity FROM drugs WHERE drug_id = 25 FOR UPDATE
+[  0.71s] A |   -> (100,)
+[  0.71s] B | SELECT stock_quantity FROM drugs WHERE drug_id = 25 FOR UPDATE   (sent ...)
+[  1.32s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+[  1.32s] A | UPDATE drugs SET stock_quantity = 90 WHERE drug_id = 25
+[  1.32s] A | COMMIT
+[  1.32s] B |   ... completed -> (90,)
+           # B's locked read returned 90, A's committed value, not the stale 100
+[  1.32s] B | UPDATE drugs SET stock_quantity = 85 WHERE drug_id = 25
+[  1.32s] B | COMMIT
+[  1.32s] M | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  1.32s] M |   -> (85,)
+[  1.32s] M | final stock = 85
+           >>> RESULT: PREVENTED: stock 85
+
+--- C1d  Fix 3: REPEATABLE READ detects the conflict; the application retries
+[  1.32s] A | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  1.33s] B | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  1.33s] A | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  1.33s] A |   -> (100,)
+[  1.33s] B | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  1.33s] B |   -> (100,)
+[  1.33s] A | UPDATE drugs SET stock_quantity = 90 WHERE drug_id = 25
+[  1.33s] A | COMMIT
+[  1.33s] B | UPDATE drugs SET stock_quantity = 95 WHERE drug_id = 25
+[  1.33s] B |   ERROR 40001: could not serialize access due to concurrent update
+[  1.33s] B | ROLLBACK
+           # B got SQLSTATE 40001 (serialization_failure) - retrying the whole transaction
+[  1.33s] B | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  1.33s] B | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  1.33s] B |   -> (90,)
+[  1.33s] B | UPDATE drugs SET stock_quantity = 85 WHERE drug_id = 25
+[  1.33s] B | COMMIT
+[  1.34s] M | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  1.34s] M |   -> (85,)
+[  1.34s] M | final stock = 85
+           >>> RESULT: PREVENTED: stock 85 (1 retry)
+
+====================================================================================================
+C2  Dirty read: B asks for READ UNCOMMITTED while A has an uncommitted change
+====================================================================================================
+[  0.00s] A | BEGIN
+[  0.00s] A | UPDATE drugs SET stock_quantity = 0 WHERE drug_id = 25
+[  0.01s] B | BEGIN ISOLATION LEVEL READ UNCOMMITTED
+[  0.01s] B | SHOW transaction_isolation
+[  0.01s] B |   -> ('read uncommitted',)
+[  0.01s] B | SELECT stock_quantity FROM drugs WHERE drug_id = 25
+[  0.01s] B |   -> (100,)
+[  0.01s] B | COMMIT
+[  0.01s] A | ROLLBACK
+           # PostgreSQL treats READ UNCOMMITTED as READ COMMITTED: MVCC never exposes uncommitted versions
+           >>> RESULT: PREVENTED: B saw 100, not A's uncommitted 0
+
+====================================================================================================
+C3  Non-repeatable read: a cashier prints a statement while another desk takes a payment
+====================================================================================================
+
+--- C3 READ COMMITTED
+[  0.01s] A | BEGIN ISOLATION LEVEL READ COMMITTED
+[  0.01s] A | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.04s] A |   -> (Decimal('10000.00'),)
+[  0.04s] B | SELECT record_payment(172710, 4000, 'Cash', 321)
+[  0.09s] B |   -> ('Partial',)
+           # B's call runs in autocommit mode, so the payment is committed immediately
+[  0.09s] A | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.09s] A |   -> (Decimal('6000.00'),)
+[  0.09s] A | COMMIT
+           >>> RESULT: ANOMALY: same query in one transaction returned 10000.00 then 6000.00
+
+--- C3 REPEATABLE READ
+[  0.09s] A | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  0.10s] A | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.10s] A |   -> (Decimal('10000.00'),)
+[  0.10s] B | SELECT record_payment(172710, 4000, 'Cash', 321)
+[  0.10s] B |   -> ('Partial',)
+           # B's call runs in autocommit mode, so the payment is committed immediately
+[  0.10s] A | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.10s] A |   -> (Decimal('10000.00'),)
+[  0.10s] A | COMMIT
+           >>> RESULT: PREVENTED: both reads returned 10000.00 (snapshot taken at first query)
+
+====================================================================================================
+C4  Phantom read: a manager counts Dr's bookings for a day while reception adds one
+====================================================================================================
+
+--- C4 READ COMMITTED
+[  0.00s] A | BEGIN ISOLATION LEVEL READ COMMITTED
+[  0.00s] A | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start >= '2030-02-05' AND scheduled_start < '2030-02-06'
+[  0.01s] A |   -> (0,)
+[  0.01s] B | SELECT book_appointment(1483, 43, '2030-02-05 9:00')
+[  0.04s] B |   -> (201340,)
+[  0.04s] A | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start >= '2030-02-05' AND scheduled_start < '2030-02-06'
+[  0.04s] A |   -> (1,)
+[  0.04s] A | COMMIT
+           >>> RESULT: ANOMALY: count went 0 -> 1 (a phantom row appeared)
+
+--- C4 REPEATABLE READ
+[  0.04s] A | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  0.04s] A | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start >= '2030-02-05' AND scheduled_start < '2030-02-06'
+[  0.04s] A |   -> (1,)
+[  0.04s] B | SELECT book_appointment(1483, 43, '2030-02-05 10:00')
+[  0.04s] B |   -> (201341,)
+[  0.04s] A | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start >= '2030-02-05' AND scheduled_start < '2030-02-06'
+[  0.04s] A |   -> (1,)
+[  0.04s] A | COMMIT
+           >>> RESULT: PREVENTED: count stayed 1 (PostgreSQL's RR also blocks phantoms)
+
+====================================================================================================
+C5  Write skew: rule 'always keep at least 1 ICU bed free for emergencies'
+====================================================================================================
+           # Each nurse checks that >= 2 ICU beds are free, then takes a DIFFERENT bed. No row is written twice.
+
+--- C5 REPEATABLE READ
+[  0.01s] M | setup: ICU beds available = 2
+[  0.01s] A | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  0.01s] B | BEGIN ISOLATION LEVEL REPEATABLE READ
+[  0.01s] A | SELECT COUNT(*) FROM beds b JOIN wards w USING (ward_id) WHERE w.ward_type = 'ICU' AND b.status = 'Available'
+[  0.03s] A |   -> (2,)
+[  0.03s] B | SELECT COUNT(*) FROM beds b JOIN wards w USING (ward_id) WHERE w.ward_type = 'ICU' AND b.status = 'Available'
+[  0.04s] B |   -> (2,)
+           # both see 2 free, so both decide admission is allowed
+[  0.04s] A | UPDATE beds SET status = 'Occupied' WHERE bed_id = 101
+[  0.04s] B | UPDATE beds SET status = 'Occupied' WHERE bed_id = 103
+[  0.04s] A | COMMIT
+[  0.04s] B | COMMIT
+[  0.04s] M | ICU beds still free after both nurses: 0
+           >>> RESULT: ANOMALY: both committed, 0 emergency beds left
+
+--- C5 SERIALIZABLE
+[  0.05s] M | setup: ICU beds available = 2
+[  0.05s] A | BEGIN ISOLATION LEVEL SERIALIZABLE
+[  0.05s] B | BEGIN ISOLATION LEVEL SERIALIZABLE
+[  0.06s] A | SELECT COUNT(*) FROM beds b JOIN wards w USING (ward_id) WHERE w.ward_type = 'ICU' AND b.status = 'Available'
+[  0.06s] A |   -> (2,)
+[  0.06s] B | SELECT COUNT(*) FROM beds b JOIN wards w USING (ward_id) WHERE w.ward_type = 'ICU' AND b.status = 'Available'
+[  0.06s] B |   -> (2,)
+           # both see 2 free, so both decide admission is allowed
+[  0.06s] A | UPDATE beds SET status = 'Occupied' WHERE bed_id = 101
+[  0.06s] B | UPDATE beds SET status = 'Occupied' WHERE bed_id = 103
+[  0.06s] A | COMMIT
+[  0.06s] B | COMMIT
+[  0.06s] B |   ERROR 40001: could not serialize access due to read/write dependencies among transactions
+[  0.06s] B | ROLLBACK
+[  0.07s] M | ICU beds still free after both nurses: 1
+           >>> RESULT: PREVENTED: B's COMMIT failed with 40001 (SSI detected the rw-dependency cycle); 1 bed kept free, B must retry and will now see only 1 free
+
+====================================================================================================
+C6  Double payment: two cashiers settle the same NGN 10,000 bill at the same moment
+====================================================================================================
+
+--- C6a  Unsafe: check the balance, then insert the payment (no lock)
+[  0.00s] A | BEGIN
+[  0.00s] B | BEGIN
+[  0.00s] A | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.01s] A |   -> (Decimal('10000.00'),)
+[  0.01s] B | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.01s] B |   -> (Decimal('10000.00'),)
+[  0.01s] A | INSERT INTO payments (invoice_id, amount, method, received_by) VALUES (172710, 10000.00, 'Cash', 321)
+[  0.02s] B | INSERT INTO payments (invoice_id, amount, method, received_by) VALUES (172710, 10000.00, 'POS', 321)
+[  0.03s] A | COMMIT
+[  0.03s] B | COMMIT
+[  0.03s] M | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.04s] M |   -> (Decimal('-10000.00'),)
+[  0.04s] M | balance_due = -10000.00
+           >>> RESULT: ANOMALY: patient charged twice, balance -10000.00
+
+--- C6b  Safe: record_payment() locks the invoice row first
+[  0.04s] A | BEGIN
+[  0.04s] B | BEGIN
+[  0.04s] A | SELECT record_payment(172710, 10000, 'Cash', 321)
+[  0.05s] A |   -> ('Paid',)
+[  0.05s] B | SELECT record_payment(172710, 10000, 'POS', 321)   (sent ...)
+[  0.66s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+[  0.66s] A | COMMIT
+[  0.66s] B |   ... ERROR 23514: Payment of 10000 exceeds outstanding balance of 0.00 on invoice 172710
+[  0.66s] B | ROLLBACK
+[  0.66s] M | SELECT balance_due FROM v_invoice_balance WHERE invoice_id = 172710
+[  0.66s] M |   -> (Decimal('0.00'),)
+[  0.66s] M | balance_due = 0.00
+           >>> RESULT: PREVENTED: second payment rejected, balance 0.00
+
+====================================================================================================
+C7  Double booking: two receptionists book the same doctor's 10:00 slot
+====================================================================================================
+
+--- C7 A decides COMMIT
+[  0.00s] A | BEGIN
+[  0.00s] B | BEGIN
+[  0.00s] A | SELECT book_appointment(1483, 43, '2030-02-04 10:00')
+[  0.04s] A |   -> (201342,)
+[  0.04s] B | SELECT book_appointment(50000, 43, '2030-02-04 10:00')   (sent ...)
+[  0.65s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+           # B cannot know yet whether the slot is free: it waits for A's transaction to finish
+[  0.65s] A | COMMIT
+[  0.65s] B |   ... ERROR 23P01: Doctor 43 is already booked at 2030-02-04 10:00:00
+[  0.65s] B | ROLLBACK
+[  0.65s] M | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start = '2030-02-04 10:00'
+[  0.68s] M |   -> (1,)
+           >>> RESULT: PREVENTED: B rejected after waiting; 1 booking in the slot
+
+--- C7 A decides ROLLBACK
+[  0.68s] A | BEGIN
+[  0.68s] B | BEGIN
+[  0.68s] A | SELECT book_appointment(1483, 43, '2030-02-04 10:00')
+[  0.68s] A |   -> (201344,)
+[  0.68s] B | SELECT book_appointment(50000, 43, '2030-02-04 10:00')   (sent ...)
+[  1.29s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+           # B cannot know yet whether the slot is free: it waits for A's transaction to finish
+[  1.29s] A | ROLLBACK
+[  1.29s] B |   ... completed -> (201345,)
+[  1.29s] B | COMMIT
+[  1.30s] M | SELECT COUNT(*) FROM appointments WHERE doctor_id = 43 AND scheduled_start = '2030-02-04 10:00'
+[  1.30s] M |   -> (1,)
+           >>> RESULT: B's booking went through once A released the slot; 1 booking in the slot
+
+====================================================================================================
+C8  Concurrent admissions: two nurses admit patients to the General ward at the same time
+====================================================================================================
+[  0.00s] A | BEGIN
+[  0.00s] B | BEGIN
+[  0.00s] A | SELECT admit_patient(50000, 'General', 43, 'DEMO concurrent admission')
+[  0.03s] A |   -> (9742,)
+[  0.03s] B | SELECT admit_patient(49999, 'General', 43, 'DEMO concurrent admission')
+[  0.06s] B |   -> (9743,)
+[  0.06s] A | SELECT bed_id FROM admissions WHERE admission_id = 9742
+[  0.06s] A |   -> (21,)
+[  0.06s] B | SELECT bed_id FROM admissions WHERE admission_id = 9743
+[  0.07s] B |   -> (22,)
+[  0.07s] A | ROLLBACK
+[  0.07s] B | ROLLBACK
+           # both transactions rolled back - nothing is left behind
+           >>> RESULT: A got bed 21, B got bed 22 in 31 ms without waiting for A
+
+====================================================================================================
+C9  Deadlock: two pharmacists update the same two drugs in opposite order
+====================================================================================================
+
+--- C9a  Opposite lock order
+[  0.00s] A | BEGIN
+[  0.00s] B | BEGIN
+[  0.01s] A | UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 25
+[  0.01s] B | UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 26
+[  0.01s] A | UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 26   (sent ...)
+[  0.62s] M | session A (pid 14900) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [22424]
+[  0.62s] B | UPDATE drugs SET stock_quantity = stock_quantity - 1 WHERE drug_id = 25   (sent ...)
+           # A waits for B and B waits for A; after deadlock_timeout (1 s) PostgreSQL picks a victim
+[  1.03s] A |   ... ERROR 40P01: deadlock detected
+[  1.03s] B |   ... completed -> None
+[  1.03s] A | ROLLBACK
+[  1.03s] B | COMMIT
+           >>> RESULT: DEADLOCK detected: session A aborted with 40P01, session B committed
+
+--- C9b  Prevention: dispense_prescription() always locks drugs in drug_id order
+[  1.03s] M | INSERT INTO prescriptions (encounter_id, prescribed_by) VALUES (11, 43) RETURNING prescription_id
+[  1.05s] M |   -> (140059,)
+[  1.06s] M | INSERT INTO prescriptions (encounter_id, prescribed_by) VALUES (11, 43) RETURNING prescription_id
+[  1.07s] M |   -> (140060,)
+[  1.07s] A | BEGIN
+[  1.07s] B | BEGIN
+[  1.07s] A | SELECT dispense_prescription(140059, 306)
+[  1.10s] A |   -> (2,)
+[  1.10s] B | SELECT dispense_prescription(140060, 306)   (sent ...)
+[  1.71s] M | session B (pid 22424) is waiting: wait_event=Lock/transactionid, waiting for transactionid ShareLock, blocked by pid [14900]
+[  1.71s] A | COMMIT
+[  1.71s] B |   ... completed -> (2,)
+[  1.71s] B | COMMIT
+           >>> RESULT: PREVENTED: B simply waited for A, then completed
+
+====================================================================================================
+C10  Lost update on a form: two records officers edit the same patient's phone number
+====================================================================================================
+           # No lock is held while a person types. Each officer remembers the row version (xmin) they loaded.
+[  0.00s] M | SELECT phone FROM patients WHERE patient_id = 50000
+[  0.00s] M |   -> ('08094691841',)
+[  0.00s] A | SELECT phone, xmin::text FROM patients WHERE patient_id = 50000
+[  0.00s] A |   -> ('08094691841', '1404')
+[  0.00s] B | SELECT phone, xmin::text FROM patients WHERE patient_id = 50000
+[  0.00s] B |   -> ('08094691841', '1404')
+[  0.00s] A | UPDATE patients SET phone = '08031111111' WHERE patient_id = 50000 AND xmin = '1404'::xid RETURNING xmin::text
+[  0.00s] A |   -> ('1483',)
+[  0.00s] B | UPDATE patients SET phone = '08032222222' WHERE patient_id = 50000 AND xmin = '1404'::xid RETURNING xmin::text
+[  0.00s] B |   -> []
+           # B's UPDATE matched 0 rows: the version B loaded no longer exists, so B is told to reload
+[  0.00s] M | SELECT phone FROM patients WHERE patient_id = 50000
+[  0.01s] M |   -> ('08031111111',)
+           >>> RESULT: PREVENTED: A saved (1 row), B's stale save rejected (0 rows); phone = 08031111111
+
+====================================================================================================
+C11  Only one nightly billing run at a time (advisory lock on key 8103)
+====================================================================================================
+[  0.00s] A | SELECT pg_try_advisory_lock(8103) AS got_lock
+[  0.00s] A |   -> (True,)
+[  0.00s] B | SELECT pg_try_advisory_lock(8103) AS got_lock
+[  0.00s] B |   -> (False,)
+           # B's scheduler sees the job is already running and skips this cycle
+[  0.00s] A | SELECT pg_advisory_unlock(8103)
+[  0.00s] A |   -> (True,)
+[  0.00s] B | SELECT pg_try_advisory_lock(8103) AS got_lock
+[  0.00s] B |   -> (True,)
+[  0.00s] B | SELECT pg_advisory_unlock(8103)
+[  0.00s] B |   -> (True,)
+           >>> RESULT: PREVENTED: second job instance refused (got_lock = False)
+
+====================================================================================================
+SUMMARY
+====================================================================================================
+C1a   READ COMMITTED, read-modify-write    ANOMALY: stock 95, A's 10 capsules vanished from the books
+C1b   relative UPDATE (row lock)           PREVENTED: stock 85
+C1c   SELECT ... FOR UPDATE                PREVENTED: stock 85
+C1d   REPEATABLE READ + retry              PREVENTED: stock 85 (1 retry)
+C2    READ UNCOMMITTED                     PREVENTED: B saw 100, not A's uncommitted 0
+C3    READ COMMITTED                       ANOMALY: same query in one transaction returned 10000.00 then 6000.00
+C3    REPEATABLE READ                      PREVENTED: both reads returned 10000.00 (snapshot taken at first query)
+C4    READ COMMITTED                       ANOMALY: count went 0 -> 1 (a phantom row appeared)
+C4    REPEATABLE READ                      PREVENTED: count stayed 1 (PostgreSQL's RR also blocks phantoms)
+C5    REPEATABLE READ                      ANOMALY: both committed, 0 emergency beds left
+C5    SERIALIZABLE                         PREVENTED: B's COMMIT failed with 40001 (SSI detected the rw-dependency cycle); 1 bed kept free, B must retry and will now see only 1 free
+C6a   check-then-insert, no lock           ANOMALY: patient charged twice, balance -10000.00
+C6b   record_payment() with FOR UPDATE     PREVENTED: second payment rejected, balance 0.00
+C7    A commits                            PREVENTED: B rejected after waiting; 1 booking in the slot
+C7    A rolls back                         B's booking went through once A released the slot; 1 booking in the slot
+C8    FOR UPDATE SKIP LOCKED               A got bed 21, B got bed 22 in 31 ms without waiting for A
+C9a   opposite lock order                  DEADLOCK detected: session A aborted with 40P01, session B committed
+C9b   consistent lock order                PREVENTED: B simply waited for A, then completed
+C10   optimistic (xmin version check)      PREVENTED: A saved (1 row), B's stale save rejected (0 rows); phone = 08031111111
+C11   advisory lock                        PREVENTED: second job instance refused (got_lock = False)
