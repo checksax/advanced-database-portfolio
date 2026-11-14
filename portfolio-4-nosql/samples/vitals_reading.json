@@ -1,0 +1,17 @@
+{
+  "ts": {
+    "$date": "2026-11-03T09:00:00Z"
+  },
+  "meta": {
+    "admission_id": 9730,
+    "patient_id": 14457,
+    "ward": "Mary Slessor Ward"
+  },
+  "pulse_bpm": 74,
+  "temperature_c": 36.8,
+  "_id": {
+    "$oid": "6aea4c6aab7e7cd80e940beb"
+  },
+  "bp_systolic": 126,
+  "spo2_pct": 94
+}

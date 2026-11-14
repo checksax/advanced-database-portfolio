@@ -1,0 +1,134 @@
+{
+  "_id": 29,
+  "type": "Outpatient",
+  "date": {
+    "$date": "2024-11-04T08:24:00Z"
+  },
+  "chief_complaint": "Fever and body aches",
+  "patient": {
+    "patient_id": 3231,
+    "hospital_no": "SGH-0003231",
+    "name": "Fatima Bello",
+    "gender": "F",
+    "age_at_visit": 12
+  },
+  "doctor": {
+    "staff_id": 31,
+    "name": "Dr. Aondona Ibe",
+    "specialty": "Paediatrics",
+    "department": "Paediatrics"
+  },
+  "appointment_id": 12,
+  "vitals": {
+    "temperature_c": 37.4,
+    "blood_pressure": {
+      "systolic": 141,
+      "diastolic": 71
+    },
+    "pulse_bpm": 89,
+    "weight_kg": 38.7
+  },
+  "diagnoses": [
+    {
+      "code": "B54",
+      "description": "Unspecified malaria",
+      "category": "Infectious diseases",
+      "type": "Primary"
+    }
+  ],
+  "prescription": {
+    "prescription_id": 25,
+    "status": "Dispensed",
+    "dispensed_by": 314,
+    "dispensed_at": {
+      "$date": "2024-11-04T09:54:00Z"
+    },
+    "items": [
+      {
+        "drug_id": 1,
+        "drug": "Artemether/Lumefantrine",
+        "form": "Tablet",
+        "strength": "20/120 mg",
+        "dose": "1 tab",
+        "frequency": "Twice daily",
+        "days": 7,
+        "quantity": 14,
+        "dispensed": 14
+      },
+      {
+        "drug_id": 2,
+        "drug": "Paracetamol",
+        "form": "Tablet",
+        "strength": "500 mg",
+        "dose": "1 tab",
+        "frequency": "Twice daily",
+        "days": 30,
+        "quantity": 60,
+        "dispensed": 60
+      }
+    ]
+  },
+  "labs": [
+    {
+      "order_id": 27,
+      "test_code": "MPS",
+      "test": "Malaria Parasite Smear",
+      "priority": "Routine",
+      "ordered_at": {
+        "$date": "2024-11-04T08:48:00Z"
+      },
+      "status": "Completed",
+      "result": {
+        "flag": "High",
+        "performed_by": 292,
+        "resulted_at": {
+          "$date": "2024-11-04T18:48:00Z"
+        },
+        "finding": "Seen (+)",
+        "species": "P. falciparum",
+        "density": "+"
+      }
+    },
+    {
+      "order_id": 28,
+      "test_code": "FBC",
+      "test": "Full Blood Count (Haemoglobin)",
+      "priority": "Routine",
+      "ordered_at": {
+        "$date": "2024-11-04T08:49:00Z"
+      },
+      "status": "Completed",
+      "result": {
+        "flag": "Normal",
+        "performed_by": 303,
+        "resulted_at": {
+          "$date": "2024-11-05T02:49:00Z"
+        },
+        "value": 14.95,
+        "unit": "g/dL",
+        "reference_range": {
+          "low": 12.0,
+          "high": 17.5
+        },
+        "panel": {
+          "haemoglobin_g_dl": 14.95,
+          "wbc_10e9_l": 8.5,
+          "platelets_10e9_l": 249
+        }
+      }
+    }
+  ],
+  "billing": {
+    "invoice_no": "INV-2024-0000041",
+    "total": {
+      "$numberDecimal": "26600.00"
+    },
+    "paid": {
+      "$numberDecimal": "26600.00"
+    },
+    "balance": {
+      "$numberDecimal": "0.00"
+    },
+    "status": "Paid"
+  }
+}

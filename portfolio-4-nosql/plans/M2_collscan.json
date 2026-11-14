@@ -1,0 +1,305 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "$and": [
+       {
+        "date": {
+         "$lt": {
+          "$date": "2026-11-03T00:00:00Z"
+         }
+        }
+       },
+       {
+        "date": {
+         "$gte": {
+          "$date": "2026-08-04T00:00:00Z"
+         }
+        }
+       },
+       {
+        "diagnoses.code": {
+         "$in": [
+          "B50.9",
+          "B54"
+         ]
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "1E1125C0",
+     "planCacheShapeHash": "1E1125C0",
+     "planCacheKey": "19774D3C",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 249,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "PROJECTION_SIMPLE",
+      "transformBy": {
+       "date": 1,
+       "diagnoses": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "COLLSCAN",
+       "filter": {
+        "$and": [
+         {
+          "date": {
+           "$lt": {
+            "$date": "2026-11-03T00:00:00Z"
+           }
+          }
+         },
+         {
+          "date": {
+           "$gte": {
+            "$date": "2026-08-04T00:00:00Z"
+           }
+          }
+         },
+         {
+          "diagnoses.code": {
+           "$in": [
+            "B50.9",
+            "B54"
+           ]
+          }
+         }
+        ]
+       },
+       "nss": "stgrace_hospital.encounters",
+       "direction": "forward"
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 2867,
+     "executionTimeMillis": 324,
+     "executionTimeMicros": 324670,
+     "totalKeysExamined": 0,
+     "totalDocsExamined": 172743,
+     "executionStages": {
+      "isCached": false,
+      "stage": "PROJECTION_SIMPLE",
+      "nReturned": 2867,
+      "executionTimeMillisEstimate": 264,
+      "works": 172744,
+      "advanced": 2867,
+      "needTime": 169876,
+      "needYield": 0,
+      "saveState": 27,
+      "restoreState": 26,
+      "isEOF": 1,
+      "transformBy": {
+       "date": 1,
+       "diagnoses": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "COLLSCAN",
+       "filter": {
+        "$and": [
+         {
+          "date": {
+           "$lt": {
+            "$date": "2026-11-03T00:00:00Z"
+           }
+          }
+         },
+         {
+          "date": {
+           "$gte": {
+            "$date": "2026-08-04T00:00:00Z"
+           }
+          }
+         },
+         {
+          "diagnoses.code": {
+           "$in": [
+            "B50.9",
+            "B54"
+           ]
+          }
+         }
+        ]
+       },
+       "nReturned": 2867,
+       "executionTimeMillisEstimate": 204,
+       "works": 172744,
+       "advanced": 2867,
+       "needTime": 169876,
+       "needYield": 0,
+       "saveState": 27,
+       "restoreState": 26,
+       "isEOF": 1,
+       "nss": "stgrace_hospital.encounters",
+       "direction": "forward",
+       "docsExamined": 172743,
+       "seeks": 0
+      }
+     }
+    }
+   },
+   "nReturned": 2867,
+   "executionTimeMillisEstimate": 300
+  },
+  {
+   "$unwind": {
+    "path": "$diagnoses"
+   },
+   "nReturned": 3737,
+   "executionTimeMillisEstimate": 300
+  },
+  {
+   "$match": {
+    "diagnoses.code": {
+     "$in": [
+      "B50.9",
+      "B54"
+     ]
+    }
+   },
+   "nReturned": 2926,
+   "executionTimeMillisEstimate": 310,
+   "expressionEvaluationPeakMemoryBytes": 512
+  },
+  {
+   "$group": {
+    "_id": {
+     "$dateTrunc": {
+      "date": "$date",
+      "unit": {
+       "$const": "week"
+      },
+      "startOfWeek": {
+       "$const": "monday"
+      }
+     }
+    },
+    "cases": {
+     "$sum": {
+      "$const": 1
+     }
+    },
+    "$willBeMerged": false
+   },
+   "nReturned": 14,
+   "executionTimeMillisEstimate": 315,
+   "maxAccumulatorMemoryUsageBytes": {
+    "cases": 3248
+   },
+   "totalOutputDataSizeBytes": 3318,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 3472
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "_id": 1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 3430,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 14,
+   "executionTimeMillisEstimate": 315,
+   "peakTrackedMemBytes": 3430
+  }
+ ],
+ "queryShapeHash": "824AA459AD1D7FD606E129AAA4D08887F598FD784AACB0FB4A8498BC8E7BE202",
+ "peakTrackedMemBytes": 7414,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "diagnoses.code": {
+      "$in": [
+       "B54",
+       "B50.9"
+      ]
+     },
+     "date": {
+      "$gte": {
+       "$date": "2026-08-04T00:00:00Z"
+      },
+      "$lt": {
+       "$date": "2026-11-03T00:00:00Z"
+      }
+     }
+    }
+   },
+   {
+    "$unwind": "$diagnoses"
+   },
+   {
+    "$match": {
+     "diagnoses.code": {
+      "$in": [
+       "B54",
+       "B50.9"
+      ]
+     }
+    }
+   },
+   {
+    "$group": {
+     "_id": {
+      "$dateTrunc": {
+       "date": "$date",
+       "unit": "week",
+       "startOfWeek": "monday"
+      }
+     },
+     "cases": {
+      "$sum": 1
+     }
+    }
+   },
+   {
+    "$sort": {
+     "_id": 1
+    }
+   }
+  ],
+  "cursor": {},
+  "hint": {
+   "$natural": 1
+  },
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

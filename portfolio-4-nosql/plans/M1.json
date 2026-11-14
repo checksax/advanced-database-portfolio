@@ -1,0 +1,178 @@
+{
+ "explainVersion": "1",
+ "queryPlanner": {
+  "namespace": "stgrace_hospital.encounters",
+  "parsedQuery": {
+   "patient.patient_id": {
+    "$eq": 1
+   }
+  },
+  "indexFilterSet": false,
+  "queryHash": "D5EC3B86",
+  "planCacheShapeHash": "D5EC3B86",
+  "planCacheKey": "9AFD4E0F",
+  "optimizationTimeMillis": 0,
+  "optimizationTimeMicros": 392,
+  "maxIndexedOrSolutionsReached": false,
+  "maxIndexedAndSolutionsReached": false,
+  "maxScansToExplodeReached": false,
+  "prunedSimilarIndexes": false,
+  "winningPlan": {
+   "isCached": false,
+   "stage": "PROJECTION_DEFAULT",
+   "transformBy": {
+    "date": 1,
+    "type": 1,
+    "doctor.name": 1,
+    "diagnoses": 1
+   },
+   "inputStage": {
+    "stage": "FETCH",
+    "nss": "stgrace_hospital.encounters",
+    "inputStage": {
+     "stage": "IXSCAN",
+     "nss": "stgrace_hospital.encounters",
+     "keyPattern": {
+      "patient.patient_id": 1,
+      "date": -1
+     },
+     "indexName": "patient_history",
+     "isMultiKey": false,
+     "multiKeyPaths": {
+      "patient.patient_id": [],
+      "date": []
+     },
+     "isUnique": false,
+     "isSparse": false,
+     "isPartial": false,
+     "indexVersion": 2,
+     "direction": "forward",
+     "indexBounds": {
+      "patient.patient_id": [
+       "[1, 1]"
+      ],
+      "date": [
+       "[MaxKey, MinKey]"
+      ]
+     }
+    }
+   }
+  },
+  "rejectedPlans": []
+ },
+ "executionStats": {
+  "executionSuccess": true,
+  "nReturned": 293,
+  "executionTimeMillis": 3,
+  "executionTimeMicros": 3619,
+  "totalKeysExamined": 293,
+  "totalDocsExamined": 293,
+  "executionStages": {
+   "isCached": false,
+   "stage": "PROJECTION_DEFAULT",
+   "nReturned": 293,
+   "executionTimeMillisEstimate": 0,
+   "works": 294,
+   "advanced": 293,
+   "needTime": 0,
+   "needYield": 0,
+   "saveState": 0,
+   "restoreState": 0,
+   "isEOF": 1,
+   "transformBy": {
+    "date": 1,
+    "type": 1,
+    "doctor.name": 1,
+    "diagnoses": 1
+   },
+   "peakTrackedMemBytes": 0,
+   "inputStage": {
+    "stage": "FETCH",
+    "nReturned": 293,
+    "executionTimeMillisEstimate": 0,
+    "works": 294,
+    "advanced": 293,
+    "needTime": 0,
+    "needYield": 0,
+    "saveState": 0,
+    "restoreState": 0,
+    "isEOF": 1,
+    "nss": "stgrace_hospital.encounters",
+    "docsExamined": 293,
+    "alreadyHasObj": 0,
+    "inputStage": {
+     "stage": "IXSCAN",
+     "nReturned": 293,
+     "executionTimeMillisEstimate": 0,
+     "works": 294,
+     "advanced": 293,
+     "needTime": 0,
+     "needYield": 0,
+     "saveState": 0,
+     "restoreState": 0,
+     "isEOF": 1,
+     "nss": "stgrace_hospital.encounters",
+     "keyPattern": {
+      "patient.patient_id": 1,
+      "date": -1
+     },
+     "indexName": "patient_history",
+     "isMultiKey": false,
+     "multiKeyPaths": {
+      "patient.patient_id": [],
+      "date": []
+     },
+     "isUnique": false,
+     "isSparse": false,
+     "isPartial": false,
+     "indexVersion": 2,
+     "direction": "forward",
+     "indexBounds": {
+      "patient.patient_id": [
+       "[1, 1]"
+      ],
+      "date": [
+       "[MaxKey, MinKey]"
+      ]
+     },
+     "keysExamined": 293,
+     "seeks": 1,
+     "dupsTested": 0,
+     "dupsDropped": 0,
+     "peakTrackedMemBytes": 0
+    }
+   }
+  }
+ },
+ "queryShapeHash": "96E531F4C2B5D360AF3282D40BD90116645A1D0211FB39FFCE13C0B7E25927E0",
+ "command": {
+  "find": "encounters",
+  "filter": {
+   "patient.patient_id": 1
+  },
+  "sort": {
+   "date": -1
+  },
+  "projection": {
+   "date": 1,
+   "type": 1,
+   "doctor.name": 1,
+   "diagnoses": 1
+  },
+  "$db": "stgrace_hospital"
+ },
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "ok": 1.0
+}

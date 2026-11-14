@@ -1,0 +1,309 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "labs.result.culture": {
+       "$exists": true
+      }
+     },
+     "indexFilterSet": false,
+     "queryHash": "9D136774",
+     "planCacheShapeHash": "9D136774",
+     "planCacheKey": "813F215D",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 256,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "PROJECTION_SIMPLE",
+      "transformBy": {
+       "labs": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "COLLSCAN",
+       "filter": {
+        "labs.result.culture": {
+         "$exists": true
+        }
+       },
+       "nss": "stgrace_hospital.encounters",
+       "direction": "forward"
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 4158,
+     "executionTimeMillis": 481,
+     "executionTimeMicros": 481974,
+     "totalKeysExamined": 0,
+     "totalDocsExamined": 172743,
+     "executionStages": {
+      "isCached": false,
+      "stage": "PROJECTION_SIMPLE",
+      "nReturned": 4158,
+      "executionTimeMillisEstimate": 331,
+      "works": 172744,
+      "advanced": 4158,
+      "needTime": 168585,
+      "needYield": 0,
+      "saveState": 34,
+      "restoreState": 33,
+      "isEOF": 1,
+      "transformBy": {
+       "labs": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "COLLSCAN",
+       "filter": {
+        "labs.result.culture": {
+         "$exists": true
+        }
+       },
+       "nReturned": 4158,
+       "executionTimeMillisEstimate": 284,
+       "works": 172744,
+       "advanced": 4158,
+       "needTime": 168585,
+       "needYield": 0,
+       "saveState": 34,
+       "restoreState": 33,
+       "isEOF": 1,
+       "nss": "stgrace_hospital.encounters",
+       "direction": "forward",
+       "docsExamined": 172743,
+       "seeks": 0
+      }
+     }
+    }
+   },
+   "nReturned": 4158,
+   "executionTimeMillisEstimate": 381
+  },
+  {
+   "$unwind": {
+    "path": "$labs"
+   },
+   "nReturned": 8231,
+   "executionTimeMillisEstimate": 417
+  },
+  {
+   "$match": {
+    "labs.result.culture": {
+     "$exists": true
+    }
+   },
+   "nReturned": 4158,
+   "executionTimeMillisEstimate": 417,
+   "expressionEvaluationPeakMemoryBytes": 1012
+  },
+  {
+   "$unwind": {
+    "path": "$labs.result.culture.sensitivities"
+   },
+   "nReturned": 16632,
+   "executionTimeMillisEstimate": 418
+  },
+  {
+   "$group": {
+    "_id": {
+     "organism": "$labs.result.culture.organism",
+     "antibiotic": "$labs.result.culture.sensitivities.antibiotic"
+    },
+    "tested": {
+     "$sum": {
+      "$const": 1
+     }
+    },
+    "resistant": {
+     "$sum": {
+      "$cond": [
+       {
+        "$eq": [
+         "$labs.result.culture.sensitivities.result",
+         {
+          "$const": "R"
+         }
+        ]
+       },
+       {
+        "$const": 1
+       },
+       {
+        "$const": 0
+       }
+      ]
+     }
+    },
+    "$willBeMerged": false
+   },
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 475,
+   "maxAccumulatorMemoryUsageBytes": {
+    "tested": 2320,
+    "resistant": 2320
+   },
+   "totalOutputDataSizeBytes": 5499,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 5959
+  },
+  {
+   "$project": {
+    "_id": true,
+    "tested": true,
+    "resistant": true,
+    "resistance_pct": {
+     "$round": [
+      {
+       "$multiply": [
+        {
+         "$divide": [
+          "$resistant",
+          "$tested"
+         ]
+        },
+        {
+         "$const": 100
+        }
+       ]
+      },
+      {
+       "$const": 1
+      }
+     ]
+    }
+   },
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 475,
+   "expressionEvaluationPeakMemoryBytes": 0
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "_id.organism": 1,
+     "resistance_pct": -1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 6814,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 475,
+   "peakTrackedMemBytes": 6814
+  }
+ ],
+ "queryShapeHash": "74DC389DFC8C9024DE1C9E369A5EEDD0BA4CBAA01AEF0F0886F3F3CA3EF70785",
+ "peakTrackedMemBytes": 13785,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "labs.result.culture": {
+      "$exists": true
+     }
+    }
+   },
+   {
+    "$unwind": "$labs"
+   },
+   {
+    "$match": {
+     "labs.result.culture": {
+      "$exists": true
+     }
+    }
+   },
+   {
+    "$unwind": "$labs.result.culture.sensitivities"
+   },
+   {
+    "$group": {
+     "_id": {
+      "organism": "$labs.result.culture.organism",
+      "antibiotic": "$labs.result.culture.sensitivities.antibiotic"
+     },
+     "tested": {
+      "$sum": 1
+     },
+     "resistant": {
+      "$sum": {
+       "$cond": [
+        {
+         "$eq": [
+          "$labs.result.culture.sensitivities.result",
+          "R"
+         ]
+        },
+        1,
+        0
+       ]
+      }
+     }
+    }
+   },
+   {
+    "$project": {
+     "tested": 1,
+     "resistant": 1,
+     "resistance_pct": {
+      "$round": [
+       {
+        "$multiply": [
+         {
+          "$divide": [
+           "$resistant",
+           "$tested"
+          ]
+         },
+         100
+        ]
+       },
+       1
+      ]
+     }
+    }
+   },
+   {
+    "$sort": {
+     "_id.organism": 1,
+     "resistance_pct": -1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

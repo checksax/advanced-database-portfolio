@@ -1,0 +1,23 @@
+{
+  "_id": 1,
+  "staff_no": "STF-00001",
+  "name": {
+    "first": "Asabe",
+    "last": "Omoregie"
+  },
+  "role": "Doctor",
+  "department": "General Medicine",
+  "email": "asabe.omoregie@stgrace.example",
+  "phone": "08098085918",
+  "hire_date": {
+    "$date": "2018-08-09T00:00:00Z"
+  },
+  "active": true,
+  "doctor": {
+    "specialty": "Family Medicine",
+    "license_no": "MDCN/36527/1",
+    "consultation_fee": {
+      "$numberDecimal": "20000.00"
+    }
+  }
+}

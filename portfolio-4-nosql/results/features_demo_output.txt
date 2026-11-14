@@ -1,0 +1,75 @@
+MongoDB 9.0.4  database 'stgrace_hospital'
+
+==========================================================================================
+F1  Schema validation ($jsonSchema): flexible, but not schemaless
+==========================================================================================
+  REJECTED (gender 'X' and a malformed phone): code 121 'Document failed validation'
+      - gender: value was not found in enum (value 'X')
+      - contact: phone: regular expression did not match (value '12345')
+  REJECTED (missing date_of_birth, hospital number in the wrong format): code 121 'Document failed validation'
+      - hospital_no: regular expression did not match (value '9999902')
+      - missing ['date_of_birth']
+  REJECTED (encounter without a doctor): code 121 'Document failed validation'
+
+==========================================================================================
+F2  Schema evolution: NHIA introduces an enrolee ID; store it for one patient, no ALTER TABLE
+==========================================================================================
+  patient 1 insurance now: {"insurance": {"provider": "NHIA (National Health Insurance Authority)", "coverage_percent": 90.0, "policy_no": "POL-17704291", "nhia_enrolee_id": "NHIA-LAG-0042117"}}
+  patients that have the new field: 1
+  other 49,999 documents untouched, e.g. patient 2: {"insurance": {"provider": "Hygeia HMO", "coverage_percent": 80.0, "policy_no": "POL-56245261"}}
+  (field removed again to restore the original data)
+
+==========================================================================================
+F3  Polymorphism: lab results of different shapes live side by side in `encounters`
+==========================================================================================
+   91,558 results  fields=['flag', 'performed_by', 'reference_range', 'resulted_at', 'unit', 'value']  tests=['EUCR', 'FBS', 'HBA1C', 'LFT', 'LIPID', 'PCV']
+   52,528 results  fields=['flag', 'panel', 'performed_by', 'reference_range', 'resulted_at', 'unit', 'value']  tests=['FBC']
+   49,741 results  fields=['finding', 'flag', 'performed_by', 'resulted_at']  tests=['AFB', 'HIV', 'MCS-U', 'MPS', 'STOOL', 'UA', 'WIDAL']
+   12,168 results  fields=['density', 'finding', 'flag', 'performed_by', 'resulted_at', 'species']  tests=['MPS']
+    4,158 results  fields=['culture', 'finding', 'flag', 'performed_by', 'resulted_at']  tests=['MCS-U']
+      100 results  fields=['finding', 'flag', 'genotype', 'performed_by', 'resulted_at']  tests=['GENO']
+
+==========================================================================================
+F4  Single-document atomicity: dispense a whole prescription in ONE update
+==========================================================================================
+  before: {"prescription": {"prescription_id": 1, "status": "Pending", "items": [{"drug_id": 18, "drug": "Normal Saline", "form": "Infusion", "strength": "0.9% 500 ml", "dose": "500 ml", "frequency": "Every 8 hours", "days": 1, "quantity": 4, "dispensed": 0}, {"drug_id": 6, "drug": "Amlodipine", "form": "Tablet", "strength": "5 mg", "dose": "1 tab", "frequency": "Twice daily", "days": 3, "quantity": 6, "dispensed": 0}, {"drug_id": 12, "drug": "Artesunate", "form": "Injection", "strength": "60 mg", "dose": "1 vial", "frequency": "Once daily", "days": 5, "quantity": 4, "dispensed": 0}, {"drug_id": 2, "drug": "Paracetamol", "form": "Tablet", "strength": "500 mg", "dose": "1 tab", "frequency": "Twice daily", "days": 30, "quantity": 60, "dispensed": 0}]}}
+  update result: matched=1 modified=1
+  after: {"prescription": {"prescription_id": 1, "status": "Dispensed", "items": [{"drug_id": 18, "drug": "Normal Saline", "form": "Infusion", "strength": "0.9% 500 ml", "dose": "500 ml", "frequency": "Every 8 hours", "days": 1, "quantity": 4, "dispensed": 4}, {"drug_id": 6, "drug": "Amlodipine", "form": "Tablet", "strength": "5 mg", "dose": "1 tab", "frequency": "Twice daily", "days": 3, "quantity": 6, "dispensed": 6}, {"drug_id": 12, "drug": "Artesunate", "form": "Injection", "strength": "60 mg", "dose": "1 vial", "frequency": "Once daily", "days": 5, "quantity": 4, "dispensed": 4}, {"drug_id": 2, "drug": "Paracetamol", "form": "Tablet", "strength": "500 mg", "dose": "1 tab", "frequency": "Twice daily", "days": 30, "quantity": 60, "dispensed": 60}], "dispensed_at": {"$date": "2026-11-03T21:12:45.921Z"}}}
+  In PostgreSQL this touched 2 tables and needed a transaction (Portfolio 3, T1);
+  here the prescription and all its items are one document, so one write is atomic.
+  second pharmacist tries the same prescription: matched=0 (already dispensed - nothing done)
+
+==========================================================================================
+F5  No lost update without transactions: 20 pharmacists take 10 capsules each from stock 100
+==========================================================================================
+  successful dispenses: 10
+  refused (not enough stock): 10
+  final stock: 0
+  The filter {stock >= 10} and the $inc are evaluated atomically on the document,
+  so stock never goes negative and no decrement is lost (compare Portfolio 3, C1a).
+
+==========================================================================================
+F6  Multi-document transaction (pay an invoice AND update the patient's outstanding balance)
+==========================================================================================
+  server topology: standalone (no replica set)
+  result: FAILED code 20: Transaction numbers are only allowed on a replica set member or mongos
+  MongoDB needs a replica set (or sharded cluster) for multi-document transactions,
+  because they rely on the replication oplog. Portfolio 5 builds a replica set and repeats this.
+
+==========================================================================================
+F7  Key-value cache with TTL: a patient summary that expires on its own
+==========================================================================================
+  SET: patient:summary:demo  (expires in 5 s)
+  GET immediately: {"value": {"hospital_no": "SGH-0000001", "allergies": []}}
+  TTL index: key=[('expires_at', 1)] expireAfterSeconds=0
+  GET after expiry: not found (removed by the TTL monitor 40 s after the check started; it runs every 60 s, so expiry is approximate)
+
+==========================================================================================
+F8  Atomic work queue: two nurses call the next waiting patient at the same time
+==========================================================================================
+  Nurse A called tickets: [1, 5, 7, 9, 11]
+  Nurse B called tickets: [2, 3, 4, 6, 8, 10, 12]
+  tickets called twice: none
+  tickets never called: none
+
+Done - demo documents removed.

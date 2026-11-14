@@ -1,0 +1,145 @@
+{
+  "_id": 115,
+  "type": "Inpatient",
+  "date": {
+    "$date": "2024-11-04T10:53:00Z"
+  },
+  "chief_complaint": "Painful urination",
+  "patient": {
+    "patient_id": 9014,
+    "hospital_no": "SGH-0009014",
+    "name": "Samuel Effiong",
+    "gender": "M",
+    "age_at_visit": 16
+  },
+  "doctor": {
+    "staff_id": 18,
+    "name": "Dr. Taiwo Igbinedion",
+    "specialty": "Family Medicine",
+    "department": "General Medicine"
+  },
+  "admission": {
+    "admission_id": 2,
+    "ward": "Mary Slessor Ward",
+    "ward_type": "Private",
+    "bed": "Pri-12",
+    "admitted_at": {
+      "$date": "2024-11-04T10:00:00Z"
+    },
+    "discharged_at": {
+      "$date": "2024-11-07T14:00:00Z"
+    },
+    "reason": "Medical management"
+  },
+  "vitals": {
+    "temperature_c": 36.4,
+    "blood_pressure": {
+      "systolic": 115,
+      "diastolic": 73
+    },
+    "pulse_bpm": 57,
+    "weight_kg": 44.8
+  },
+  "diagnoses": [
+    {
+      "code": "N39.0",
+      "description": "Urinary tract infection, site not specified",
+      "category": "Genitourinary system",
+      "type": "Primary"
+    }
+  ],
+  "prescription": {
+    "prescription_id": 97,
+    "status": "Dispensed",
+    "dispensed_by": 306,
+    "dispensed_at": {
+      "$date": "2024-11-04T11:08:00Z"
+    },
+    "items": [
+      {
+        "drug_id": 4,
+        "drug": "Ciprofloxacin",
+        "form": "Tablet",
+        "strength": "500 mg",
+        "dose": "1 tab",
+        "frequency": "Twice daily",
+        "days": 30,
+        "quantity": 60,
+        "dispensed": 60
+      }
+    ]
+  },
+  "labs": [
+    {
+      "order_id": 130,
+      "test_code": "UA",
+      "test": "Urinalysis",
+      "priority": "Routine",
+      "ordered_at": {
+        "$date": "2024-11-04T11:19:00Z"
+      },
+      "status": "Completed",
+      "result": {
+        "flag": "High",
+        "performed_by": 295,
+        "resulted_at": {
+          "$date": "2024-11-05T06:19:00Z"
+        },
+        "finding": "Glucose +"
+      }
+    },
+    {
+      "order_id": 131,
+      "test_code": "MCS-U",
+      "test": "Urine Microscopy, Culture & Sensitivity",
+      "priority": "Routine",
+      "ordered_at": {
+        "$date": "2024-11-04T11:00:00Z"
+      },
+      "status": "Completed",
+      "result": {
+        "flag": "High",
+        "performed_by": 292,
+        "resulted_at": {
+          "$date": "2024-11-04T14:00:00Z"
+        },
+        "finding": "E. coli >10^5 CFU/ml",
+        "culture": {
+          "organism": "E. coli",
+          "colony_count": "> 10^5 CFU/ml",
+          "sensitivities": [
+            {
+              "antibiotic": "Amoxicillin-clavulanate",
+              "result": "S"
+            },
+            {
+              "antibiotic": "Ceftriaxone",
+              "result": "R"
+            },
+            {
+              "antibiotic": "Nitrofurantoin",
+              "result": "R"
+            },
+            {
+              "antibiotic": "Gentamicin",
+              "result": "S"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "billing": {
+    "invoice_no": "INV-2024-0001052",
+    "total": {
+      "$numberDecimal": "156900.00"
+    },
+    "paid": {
+      "$numberDecimal": "156900.00"
+    },
+    "balance": {
+      "$numberDecimal": "0.00"
+    },
+    "status": "Paid"
+  }
+}

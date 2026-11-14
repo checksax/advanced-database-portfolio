@@ -1,0 +1,158 @@
+{
+ "explainVersion": "1",
+ "queryPlanner": {
+  "namespace": "stgrace_hospital.encounters",
+  "parsedQuery": {
+   "patient.patient_id": {
+    "$eq": 1
+   }
+  },
+  "indexFilterSet": false,
+  "queryHash": "D5EC3B86",
+  "planCacheShapeHash": "D5EC3B86",
+  "planCacheKey": "9AFD4E0F",
+  "optimizationTimeMillis": 0,
+  "optimizationTimeMicros": 286,
+  "maxIndexedOrSolutionsReached": false,
+  "maxIndexedAndSolutionsReached": false,
+  "maxScansToExplodeReached": false,
+  "prunedSimilarIndexes": false,
+  "winningPlan": {
+   "isCached": false,
+   "stage": "SORT",
+   "sortPattern": {
+    "date": -1
+   },
+   "memLimit": 104857600,
+   "type": "simple",
+   "inputStage": {
+    "stage": "PROJECTION_DEFAULT",
+    "transformBy": {
+     "date": 1,
+     "type": 1,
+     "doctor.name": 1,
+     "diagnoses": 1
+    },
+    "inputStage": {
+     "stage": "COLLSCAN",
+     "filter": {
+      "patient.patient_id": {
+       "$eq": 1
+      }
+     },
+     "nss": "stgrace_hospital.encounters",
+     "direction": "forward"
+    }
+   }
+  },
+  "rejectedPlans": []
+ },
+ "executionStats": {
+  "executionSuccess": true,
+  "nReturned": 293,
+  "executionTimeMillis": 285,
+  "executionTimeMicros": 285276,
+  "totalKeysExamined": 0,
+  "totalDocsExamined": 172743,
+  "executionStages": {
+   "isCached": false,
+   "stage": "SORT",
+   "nReturned": 293,
+   "executionTimeMillisEstimate": 256,
+   "works": 173038,
+   "advanced": 293,
+   "needTime": 172744,
+   "needYield": 0,
+   "saveState": 19,
+   "restoreState": 19,
+   "isEOF": 1,
+   "sortPattern": {
+    "date": -1
+   },
+   "memLimit": 104857600,
+   "type": "simple",
+   "totalDataSizeSorted": 82875,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledRecords": 0,
+   "spilledBytes": 0,
+   "spilledDataStorageSize": 0,
+   "peakTrackedMemBytes": 82875,
+   "inputStage": {
+    "stage": "PROJECTION_DEFAULT",
+    "nReturned": 293,
+    "executionTimeMillisEstimate": 225,
+    "works": 172744,
+    "advanced": 293,
+    "needTime": 172450,
+    "needYield": 0,
+    "saveState": 19,
+    "restoreState": 19,
+    "isEOF": 1,
+    "transformBy": {
+     "date": 1,
+     "type": 1,
+     "doctor.name": 1,
+     "diagnoses": 1
+    },
+    "peakTrackedMemBytes": 0,
+    "inputStage": {
+     "stage": "COLLSCAN",
+     "filter": {
+      "patient.patient_id": {
+       "$eq": 1
+      }
+     },
+     "nReturned": 293,
+     "executionTimeMillisEstimate": 164,
+     "works": 172744,
+     "advanced": 293,
+     "needTime": 172450,
+     "needYield": 0,
+     "saveState": 19,
+     "restoreState": 19,
+     "isEOF": 1,
+     "nss": "stgrace_hospital.encounters",
+     "direction": "forward",
+     "docsExamined": 172743,
+     "seeks": 0
+    }
+   }
+  }
+ },
+ "queryShapeHash": "96E531F4C2B5D360AF3282D40BD90116645A1D0211FB39FFCE13C0B7E25927E0",
+ "peakTrackedMemBytes": 82875,
+ "command": {
+  "find": "encounters",
+  "filter": {
+   "patient.patient_id": 1
+  },
+  "sort": {
+   "date": -1
+  },
+  "projection": {
+   "date": 1,
+   "type": 1,
+   "doctor.name": 1,
+   "diagnoses": 1
+  },
+  "hint": {
+   "$natural": 1
+  },
+  "$db": "stgrace_hospital"
+ },
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "ok": 1.0
+}

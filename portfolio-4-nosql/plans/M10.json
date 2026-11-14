@@ -1,0 +1,71 @@
+{
+ "explainVersion": "1",
+ "queryPlanner": {
+  "namespace": "stgrace_hospital.cache",
+  "parsedQuery": {
+   "_id": {
+    "$eq": "patient:summary:1"
+   }
+  },
+  "indexFilterSet": false,
+  "queryHash": "AFF3C62D",
+  "planCacheShapeHash": "AFF3C62D",
+  "planCacheKey": "2B527F6D",
+  "optimizationTimeMillis": 0,
+  "optimizationTimeMicros": 64,
+  "maxIndexedOrSolutionsReached": false,
+  "maxIndexedAndSolutionsReached": false,
+  "maxScansToExplodeReached": false,
+  "prunedSimilarIndexes": false,
+  "winningPlan": {
+   "isCached": false,
+   "stage": "EXPRESS_IXSCAN",
+   "keyPattern": {
+    "_id": 1
+   },
+   "indexName": "_id_"
+  },
+  "rejectedPlans": []
+ },
+ "executionStats": {
+  "executionSuccess": true,
+  "nReturned": 1,
+  "executionTimeMillis": 0,
+  "executionTimeMicros": 162,
+  "totalKeysExamined": 1,
+  "totalDocsExamined": 1,
+  "executionStages": {
+   "isCached": false,
+   "stage": "EXPRESS_IXSCAN",
+   "keyPattern": {
+    "_id": 1
+   },
+   "indexName": "_id_",
+   "nReturned": 1,
+   "executionTimeMillisEstimate": 0,
+   "keysExamined": 1,
+   "docsExamined": 1
+  }
+ },
+ "command": {
+  "find": "cache",
+  "filter": {
+   "_id": "patient:summary:1"
+  },
+  "$db": "stgrace_hospital"
+ },
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "ok": 1.0
+}

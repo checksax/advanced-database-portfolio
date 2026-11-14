@@ -1,0 +1,389 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.vitals",
+     "parsedQuery": {
+      "$and": [
+       {
+        "_id": {
+         "$gte": {
+          "$oid": "6abe21100000000000000000"
+         }
+        }
+       },
+       {
+        "control.max.ts": {
+         "$_internalExprGte": {
+          "$date": "2026-10-31T09:00:00Z"
+         }
+        }
+       },
+       {
+        "control.min.ts": {
+         "$_internalExprGte": {
+          "$date": "2026-10-01T09:00:00Z"
+         }
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "0D6420DB",
+     "planCacheShapeHash": "0D6420DB",
+     "planCacheKey": "417CE9C8",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 464,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "CLUSTERED_IXSCAN",
+      "filter": {
+       "$and": [
+        {
+         "control.max.ts": {
+          "$_internalExprGte": {
+           "$date": "2026-10-31T09:00:00Z"
+          }
+         }
+        },
+        {
+         "control.min.ts": {
+          "$_internalExprGte": {
+           "$date": "2026-10-01T09:00:00Z"
+          }
+         }
+        }
+       ]
+      },
+      "nss": "stgrace_hospital.vitals",
+      "direction": "forward",
+      "minRecord": {
+       "$oid": "6abe21100000000000000000"
+      },
+      "maxRecord": {
+       "$oid": "ffffffffffffffffffffffff"
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 90,
+     "executionTimeMillis": 14,
+     "executionTimeMicros": 14809,
+     "totalKeysExamined": 0,
+     "totalDocsExamined": 408,
+     "executionStages": {
+      "isCached": false,
+      "stage": "CLUSTERED_IXSCAN",
+      "filter": {
+       "$and": [
+        {
+         "control.max.ts": {
+          "$_internalExprGte": {
+           "$date": "2026-10-31T09:00:00Z"
+          }
+         }
+        },
+        {
+         "control.min.ts": {
+          "$_internalExprGte": {
+           "$date": "2026-10-01T09:00:00Z"
+          }
+         }
+        }
+       ]
+      },
+      "nReturned": 90,
+      "executionTimeMillisEstimate": 0,
+      "works": 409,
+      "advanced": 90,
+      "needTime": 318,
+      "needYield": 0,
+      "saveState": 3,
+      "restoreState": 2,
+      "isEOF": 1,
+      "nss": "stgrace_hospital.vitals",
+      "direction": "forward",
+      "minRecord": {
+       "$oid": "6abe21100000000000000000"
+      },
+      "maxRecord": {
+       "$oid": "ffffffffffffffffffffffff"
+      },
+      "docsExamined": 408,
+      "seeks": 1
+     }
+    }
+   },
+   "nReturned": 90,
+   "executionTimeMillisEstimate": 4
+  },
+  {
+   "$_internalUnpackBucket": {
+    "include": [
+     "temperature_c",
+     "ts",
+     "meta"
+    ],
+    "timeField": "ts",
+    "metaField": "meta",
+    "bucketMaxSpanSeconds": 2592000,
+    "assumeNoMixedSchemaData": true,
+    "wholeBucketFilter": {
+     "control.min.ts": {
+      "$gte": {
+       "$date": "2026-10-31T09:00:00Z"
+      }
+     }
+    },
+    "eventFilter": {
+     "ts": {
+      "$gte": {
+       "$date": "2026-10-31T09:00:00Z"
+      }
+     }
+    }
+   },
+   "nReturned": 1060,
+   "executionTimeMillisEstimate": 4
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "meta.admission_id": 1,
+     "ts": 1
+    },
+    "outputSortKeyMetadata": true
+   },
+   "totalDataSizeSortedBytesEstimate": 1027122,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 1060,
+   "executionTimeMillisEstimate": 4,
+   "peakTrackedMemBytes": 1027122
+  },
+  {
+   "$_internalSetWindowFields": {
+    "partitionBy": "$meta.admission_id",
+    "sortBy": {
+     "ts": 1
+    },
+    "output": {
+     "temp_ma": {
+      "$avg": "$temperature_c",
+      "window": {
+       "range": [
+        -12,
+        0
+       ],
+       "unit": "hour"
+      }
+     },
+     "latest": {
+      "$last": "$ts",
+      "window": {
+       "documents": [
+        "unbounded",
+        "unbounded"
+       ]
+      }
+     }
+    }
+   },
+   "nReturned": 1060,
+   "executionTimeMillisEstimate": 10,
+   "maxFunctionMemoryUsageBytes": {
+    "latest": 0,
+    "temp_ma": 496
+   },
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 18406
+  },
+  {
+   "$match": {
+    "$and": [
+     {
+      "temp_ma": {
+       "$_internalExprGt": 38
+      }
+     },
+     {
+      "$expr": {
+       "$and": [
+        {
+         "$eq": [
+          "$ts",
+          "$latest"
+         ]
+        },
+        {
+         "$gt": [
+          "$temp_ma",
+          {
+           "$const": 38
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "nReturned": 3,
+   "executionTimeMillisEstimate": 10,
+   "expressionEvaluationPeakMemoryBytes": 512
+  },
+  {
+   "$project": {
+    "ts": true,
+    "temperature_c": true,
+    "admission_id": "$meta.admission_id",
+    "ward": "$meta.ward",
+    "temp_ma": {
+     "$round": [
+      "$temp_ma",
+      {
+       "$const": 2
+      }
+     ]
+    },
+    "_id": false
+   },
+   "nReturned": 3,
+   "executionTimeMillisEstimate": 10,
+   "expressionEvaluationPeakMemoryBytes": 0
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "temp_ma": -1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 2207,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 3,
+   "executionTimeMillisEstimate": 10,
+   "peakTrackedMemBytes": 2207
+  }
+ ],
+ "queryShapeHash": "827F2EB1AEF8D4DCFD156CE41C6B14C5F98B7B3C26C78CE81E1C897E24CE3F49",
+ "peakTrackedMemBytes": 1046040,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "vitals",
+  "pipeline": [
+   {
+    "$match": {
+     "ts": {
+      "$gte": {
+       "$date": "2026-10-31T09:00:00Z"
+      }
+     }
+    }
+   },
+   {
+    "$setWindowFields": {
+     "partitionBy": "$meta.admission_id",
+     "sortBy": {
+      "ts": 1
+     },
+     "output": {
+      "temp_ma": {
+       "$avg": "$temperature_c",
+       "window": {
+        "range": [
+         -12,
+         0
+        ],
+        "unit": "hour"
+       }
+      },
+      "latest": {
+       "$last": "$ts",
+       "window": {
+        "documents": [
+         "unbounded",
+         "unbounded"
+        ]
+       }
+      }
+     }
+    }
+   },
+   {
+    "$match": {
+     "$expr": {
+      "$and": [
+       {
+        "$eq": [
+         "$ts",
+         "$latest"
+        ]
+       },
+       {
+        "$gt": [
+         "$temp_ma",
+         38
+        ]
+       }
+      ]
+     }
+    }
+   },
+   {
+    "$project": {
+     "_id": 0,
+     "admission_id": "$meta.admission_id",
+     "ward": "$meta.ward",
+     "ts": 1,
+     "temperature_c": 1,
+     "temp_ma": {
+      "$round": [
+       "$temp_ma",
+       2
+      ]
+     }
+    }
+   },
+   {
+    "$sort": {
+     "temp_ma": -1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

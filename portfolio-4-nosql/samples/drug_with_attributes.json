@@ -1,0 +1,22 @@
+{
+  "_id": 9,
+  "generic_name": "Insulin (Soluble)",
+  "brand_name": "Actrapid",
+  "form": "Injection",
+  "strength": "100 IU/ml",
+  "unit_price": {
+    "$numberDecimal": "4500.00"
+  },
+  "stock": 300,
+  "reorder_level": 50,
+  "attributes": [
+    {
+      "k": "storage",
+      "v": "2-8 C cold chain"
+    },
+    {
+      "k": "high_alert",
+      "v": true
+    }
+  ]
+}

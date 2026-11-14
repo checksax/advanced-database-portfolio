@@ -1,0 +1,316 @@
+{
+ "explainVersion": "2",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "$and": [
+       {
+        "date": {
+         "$lt": {
+          "$date": "2026-11-01T00:00:00Z"
+         }
+        }
+       },
+       {
+        "date": {
+         "$gte": {
+          "$date": "2025-11-01T00:00:00Z"
+         }
+        }
+       },
+       {
+        "billing": {
+         "$exists": true
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "B42C6926",
+     "planCacheShapeHash": "B42C6926",
+     "planCacheKey": "E30439F5",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 986,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "queryPlan": {
+       "stage": "GROUP",
+       "planNodeId": 4,
+       "inputStage": {
+        "stage": "FETCH",
+        "planNodeId": 2,
+        "filter": {
+         "billing": {
+          "$exists": true
+         }
+        },
+        "nss": "stgrace_hospital.encounters",
+        "inputStage": {
+         "stage": "IXSCAN",
+         "planNodeId": 1,
+         "nss": "stgrace_hospital.encounters",
+         "keyPattern": {
+          "date": 1
+         },
+         "indexName": "date",
+         "isMultiKey": false,
+         "multiKeyPaths": {
+          "date": []
+         },
+         "isUnique": false,
+         "isSparse": false,
+         "isPartial": false,
+         "indexVersion": 2,
+         "direction": "forward",
+         "indexBounds": {
+          "date": [
+           "[new Date(1761955200000), new Date(1793491200000))"
+          ]
+         }
+        }
+       }
+      },
+      "slotBasedPlan": {
+       "slots": "$$RESULT=s21 env: { s5 = {\"date\" : 1}, s13 = TimeZoneDatabase(America/Winnipeg...Asia/Vientiane) (timeZoneDB) }",
+       "stages": "[4] project [s21 = newObj(\"_id\", s19, \"collected\", s20, \"visits\", s16)] \n[4] project [s19 = newObj(\"month\", s18, \"department\", s12), s20 = doubleDoubleSumFinalize(s15)] \n[4] group [s18, s12] [s15 = aggDoubleDoubleSum(s11), s16 = _internalCount::accumulate(s16, 1)] spillSlots[s14, s17] mergingExprs[aggMergeDoubleDoubleSums(s14), _internalCount::merge(s17)] \n[4] project [s18 = \n    let [\n        l6.0 = dateTrunc(s13, s9, \"month\", 1ll, \"UTC\", \"sun\") \n    ] \n    in \n        if exists(l6.0) \n        then makeOwn(move(l6.0)) \n        else \n            if isNullish(s9) \n            then null \n            elif typeMatch(s9, 131712) \n            then Nothing \n            else fail(7157932, \"$dateTrunc parameter 'date' must be coercible to date\") \n] \n[4] extract_field_paths inputs[s8 = Get(billing)/Id, s9 = Get(date)/Id, s10 = Get(doctor)/Id] outputs[s11 = Get(billing)/Traverse/Get(paid)/Id, s12 = Get(doctor)/Traverse/Get(department)/Id] \n[2] filter {exists(s8)} \n[2] fetch s1 = seek, s6 = result, s7 = recordId, s4 = inSnapshotId, s2 = inIndexIdent, s3 = inIndexKey, s5 = inIndexKeyPattern [s8 = billing, s9 = date, s10 = doctor] @\"8a4695f2-a9e5-4c83-96b3-71141fcbb857\" \n[1] ixseek seekKeyLow = KS(788000019A3CB6BC0001) seekKeyHigh = KS(78800001A19467E80001) [s3 = indexKey, s1 = recordId, s4 = snapshotId, s2 = indexIdent] [] @\"8a4695f2-a9e5-4c83-96b3-71141fcbb857\" @\"date\" forward "
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 72,
+     "executionTimeMillis": 578,
+     "executionTimeMicros": 578182,
+     "totalKeysExamined": 86338,
+     "totalDocsExamined": 86338,
+     "executionStages": {
+      "stage": "project",
+      "planNodeId": 4,
+      "nReturned": 72,
+      "executionTimeMillisEstimate": 573,
+      "opens": 1,
+      "closes": 1,
+      "saveState": 38,
+      "restoreState": 37,
+      "isEOF": 1,
+      "projections": {
+       "21": "newObj(\"_id\", s19, \"collected\", s20, \"visits\", s16) "
+      },
+      "inputStage": {
+       "stage": "project",
+       "planNodeId": 4,
+       "nReturned": 72,
+       "executionTimeMillisEstimate": 573,
+       "opens": 1,
+       "closes": 1,
+       "saveState": 38,
+       "restoreState": 37,
+       "isEOF": 1,
+       "projections": {
+        "19": "newObj(\"month\", s18, \"department\", s12) ",
+        "20": "doubleDoubleSumFinalize(s15) "
+       },
+       "inputStage": {
+        "stage": "group",
+        "planNodeId": 4,
+        "nReturned": 72,
+        "executionTimeMillisEstimate": 573,
+        "opens": 1,
+        "closes": 1,
+        "saveState": 38,
+        "restoreState": 37,
+        "isEOF": 1,
+        "groupBySlots": [
+         18,
+         12
+        ],
+        "expressions": {
+         "15": "aggDoubleDoubleSum(s11) ",
+         "16": "_internalCount::accumulate(s16, 1) ",
+         "initExprs": {
+          "15": null,
+          "16": null,
+          "mergingExprs": {
+           "14": "aggMergeDoubleDoubleSums(s14) ",
+           "17": "_internalCount::merge(s17) "
+          }
+         }
+        },
+        "usedDisk": false,
+        "spills": 0,
+        "spilledBytes": 0,
+        "spilledRecords": 0,
+        "spilledDataStorageSize": 0,
+        "peakTrackedMemBytes": 12456,
+        "inputStage": {
+         "stage": "project",
+         "planNodeId": 4,
+         "nReturned": 86315,
+         "executionTimeMillisEstimate": 466,
+         "opens": 1,
+         "closes": 2,
+         "saveState": 38,
+         "restoreState": 37,
+         "isEOF": 1,
+         "projections": {
+          "18": "\n    let [\n        l6.0 = dateTrunc(s13, s9, \"month\", 1ll, \"UTC\", \"sun\") \n    ] \n    in \n        if exists(l6.0) \n        then makeOwn(move(l6.0)) \n        else \n            if isNullish(s9) \n            then null \n            elif typeMatch(s9, 131712) \n            then Nothing \n            else fail(7157932, \"$dateTrunc parameter 'date' must be coercible to date\") \n"
+         },
+         "inputStage": {
+          "stage": "extract_field_paths",
+          "planNodeId": 4,
+          "nReturned": 86315,
+          "executionTimeMillisEstimate": 337,
+          "opens": 1,
+          "closes": 2,
+          "saveState": 38,
+          "restoreState": 37,
+          "isEOF": 1,
+          "inputStage": {
+           "stage": "filter",
+           "planNodeId": 2,
+           "nReturned": 86315,
+           "executionTimeMillisEstimate": 281,
+           "opens": 1,
+           "closes": 2,
+           "saveState": 38,
+           "restoreState": 37,
+           "isEOF": 1,
+           "numTested": 86338,
+           "filter": "exists(s8) ",
+           "inputStage": {
+            "stage": "fetch",
+            "planNodeId": 2,
+            "nReturned": 86338,
+            "executionTimeMillisEstimate": 270,
+            "opens": 1,
+            "closes": 1,
+            "saveState": 38,
+            "restoreState": 37,
+            "isEOF": 1,
+            "numReads": 86338,
+            "inputStage": {
+             "stage": "ixseek",
+             "planNodeId": 1,
+             "nReturned": 86338,
+             "executionTimeMillisEstimate": 86,
+             "opens": 1,
+             "closes": 1,
+             "saveState": 38,
+             "restoreState": 37,
+             "isEOF": 1,
+             "indexName": "date",
+             "keysExamined": 86338,
+             "seeks": 1,
+             "numReads": 86339,
+             "indexKeySlot": 3,
+             "recordIdSlot": 1,
+             "snapshotIdSlot": 4,
+             "indexIdentSlot": 2,
+             "outputSlots": [],
+             "indexKeysToInclude": "00000000000000000000000000000000",
+             "seekKeyLow": "KS(788000019A3CB6BC0001) ",
+             "seekKeyHigh": "KS(78800001A19467E80001) "
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "nReturned": 72,
+   "executionTimeMillisEstimate": 577
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "_id.month": 1,
+     "_id.department": 1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 53520,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 72,
+   "executionTimeMillisEstimate": 577,
+   "peakTrackedMemBytes": 53520
+  }
+ ],
+ "queryShapeHash": "CEB844C5C03D957E4A89A19955E7676EC4135B590973E55A0EE324AAD29A42CD",
+ "peakTrackedMemBytes": 53520,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "date": {
+      "$gte": {
+       "$date": "2025-11-01T00:00:00Z"
+      },
+      "$lt": {
+       "$date": "2026-11-01T00:00:00Z"
+      }
+     },
+     "billing": {
+      "$exists": true
+     }
+    }
+   },
+   {
+    "$group": {
+     "_id": {
+      "month": {
+       "$dateTrunc": {
+        "date": "$date",
+        "unit": "month"
+       }
+      },
+      "department": "$doctor.department"
+     },
+     "collected": {
+      "$sum": "$billing.paid"
+     },
+     "visits": {
+      "$sum": 1
+     }
+    }
+   },
+   {
+    "$sort": {
+     "_id.month": 1,
+     "_id.department": 1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

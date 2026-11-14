@@ -1,0 +1,16 @@
+{
+  "_id": {
+    "$oid": "6aea4c68ab7e7cd80e93787d"
+  },
+  "from_doctor": 17,
+  "to_doctor": 57,
+  "from_department": "General Medicine",
+  "to_department": "Cardiology",
+  "patient_id": 25,
+  "referred_at": {
+    "$date": "2025-12-05T12:20:00Z"
+  },
+  "reason": "A09",
+  "from_encounter": 94138,
+  "to_encounter": 95158
+}

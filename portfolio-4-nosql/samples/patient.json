@@ -1,0 +1,73 @@
+{
+  "_id": 1,
+  "hospital_no": "SGH-0000001",
+  "name": {
+    "first": "Patience",
+    "last": "Bello"
+  },
+  "date_of_birth": {
+    "$date": {
+      "$numberLong": "-61689600000"
+    }
+  },
+  "gender": "F",
+  "blood_group": "O+",
+  "genotype": "AA",
+  "contact": {
+    "phone": "08063289181",
+    "email": "patience.bello1@mail.example",
+    "address": "229 Awolowo Road",
+    "state_of_origin": "Enugu"
+  },
+  "next_of_kin": {
+    "name": "Mary Bello",
+    "phone": "08160518158"
+  },
+  "insurance": {
+    "provider": "NHIA (National Health Insurance Authority)",
+    "coverage_percent": 90.0,
+    "policy_no": "POL-17704291"
+  },
+  "registered_at": {
+    "$date": "2023-10-24T00:00:00Z"
+  },
+  "stats": {
+    "encounters": 293,
+    "admissions": 11,
+    "last_visit": {
+      "$date": "2026-11-01T20:40:54Z"
+    },
+    "total_billed": {
+      "$numberDecimal": "7352986.00"
+    },
+    "outstanding": {
+      "$numberDecimal": "564586.57"
+    }
+  },
+  "recent_encounters": [
+    {
+      "encounter_id": 172347,
+      "date": {
+        "$date": "2026-11-01T20:40:54Z"
+      },
+      "type": "Emergency",
+      "primary_diagnosis": "K35.8"
+    },
+    {
+      "encounter_id": 171252,
+      "date": {
+        "$date": "2026-10-27T13:18:00Z"
+      },
+      "type": "Outpatient",
+      "primary_diagnosis": "I10"
+    },
+    {
+      "encounter_id": 170414,
+      "date": {
+        "$date": "2026-10-23T09:34:00Z"
+      },
+      "type": "Outpatient",
+      "primary_diagnosis": "M54.5"
+    }
+  ]
+}

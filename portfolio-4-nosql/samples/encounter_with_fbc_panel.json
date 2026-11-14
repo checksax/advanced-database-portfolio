@@ -1,0 +1,113 @@
+{
+  "_id": 3,
+  "type": "Emergency",
+  "date": {
+    "$date": "2024-11-04T04:14:49Z"
+  },
+  "chief_complaint": "Cough, difficulty breathing",
+  "patient": {
+    "patient_id": 25,
+    "hospital_no": "SGH-0000025",
+    "name": "Godwin Mbah",
+    "gender": "M",
+    "age_at_visit": 17
+  },
+  "doctor": {
+    "staff_id": 72,
+    "name": "Dr. Kehinde Adebayo",
+    "specialty": "Emergency Medicine",
+    "department": "Emergency"
+  },
+  "vitals": {
+    "temperature_c": 37.4,
+    "blood_pressure": {
+      "systolic": 124,
+      "diastolic": 75
+    },
+    "pulse_bpm": 89,
+    "weight_kg": 69.9
+  },
+  "diagnoses": [
+    {
+      "code": "J18.9",
+      "description": "Pneumonia, unspecified organism",
+      "category": "Respiratory system",
+      "type": "Primary"
+    }
+  ],
+  "prescription": {
+    "prescription_id": 3,
+    "status": "Dispensed",
+    "dispensed_by": 311,
+    "dispensed_at": {
+      "$date": "2024-11-04T04:58:49Z"
+    },
+    "items": [
+      {
+        "drug_id": 11,
+        "drug": "Ceftriaxone",
+        "form": "Injection",
+        "strength": "1 g",
+        "dose": "1 vial",
+        "frequency": "Once daily",
+        "days": 3,
+        "quantity": 3,
+        "dispensed": 3
+      },
+      {
+        "drug_id": 3,
+        "drug": "Amoxicillin",
+        "form": "Capsule",
+        "strength": "500 mg",
+        "dose": "1 cap",
+        "frequency": "Three times daily",
+        "days": 7,
+        "quantity": 21,
+        "dispensed": 21
+      }
+    ]
+  },
+  "labs": [
+    {
+      "order_id": 3,
+      "test_code": "FBC",
+      "test": "Full Blood Count (Haemoglobin)",
+      "priority": "STAT",
+      "ordered_at": {
+        "$date": "2024-11-04T04:40:49Z"
+      },
+      "status": "Completed",
+      "result": {
+        "flag": "Low",
+        "performed_by": 289,
+        "resulted_at": {
+          "$date": "2024-11-04T20:40:49Z"
+        },
+        "value": 10.1,
+        "unit": "g/dL",
+        "reference_range": {
+          "low": 12.0,
+          "high": 17.5
+        },
+        "panel": {
+          "haemoglobin_g_dl": 10.1,
+          "wbc_10e9_l": 20.7,
+          "platelets_10e9_l": 125
+        }
+      }
+    }
+  ],
+  "billing": {
+    "invoice_no": "INV-2024-0000002",
+    "total": {
+      "$numberDecimal": "14760.00"
+    },
+    "paid": {
+      "$numberDecimal": "13586.42"
+    },
+    "balance": {
+      "$numberDecimal": "1173.58"
+    },
+    "status": "Partial"
+  }
+}

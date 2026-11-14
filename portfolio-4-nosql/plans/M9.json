@@ -1,0 +1,192 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.staff",
+     "parsedQuery": {
+      "_id": {
+       "$eq": 7
+      }
+     },
+     "indexFilterSet": false,
+     "queryHash": "6E80E937",
+     "planCacheShapeHash": "6E80E937",
+     "planCacheKey": "E136A6B2",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 143,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "EXPRESS_IXSCAN",
+      "keyPattern": {
+       "_id": 1
+      },
+      "indexName": "_id_",
+      "projection": {
+       "_id": 1
+      },
+      "projectionCovered": false
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 1,
+     "executionTimeMillis": 137,
+     "executionTimeMicros": 137966,
+     "totalKeysExamined": 1,
+     "totalDocsExamined": 1,
+     "executionStages": {
+      "isCached": false,
+      "stage": "EXPRESS_IXSCAN",
+      "keyPattern": {
+       "_id": 1
+      },
+      "indexName": "_id_",
+      "projection": {
+       "_id": 1
+      },
+      "projectionCovered": false,
+      "nReturned": 1,
+      "executionTimeMillisEstimate": 0,
+      "keysExamined": 1,
+      "docsExamined": 1
+     }
+    }
+   },
+   "nReturned": 1,
+   "executionTimeMillisEstimate": 1
+  },
+  {
+   "$graphLookup": {
+    "from": "referrals",
+    "as": "chain",
+    "connectToField": "from_doctor",
+    "connectFromField": "to_doctor",
+    "startWith": "$_id",
+    "depthField": "hops",
+    "maxDepth": 2,
+    "unwinding": {
+     "preserveNullAndEmptyArrays": false
+    }
+   },
+   "nReturned": 13008,
+   "executionTimeMillisEstimate": 112,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 5850478,
+   "expressionEvaluationPeakMemoryBytes": 0
+  },
+  {
+   "$group": {
+    "_id": {
+     "hops": "$chain.hops",
+     "department": "$chain.to_department"
+    },
+    "referrals": {
+     "$sum": {
+      "$const": 1
+     }
+    },
+    "$willBeMerged": false
+   },
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 130,
+   "maxAccumulatorMemoryUsageBytes": {
+    "referrals": 2320
+   },
+   "totalOutputDataSizeBytes": 4924,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 3384
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "_id.hops": 1,
+     "referrals": -1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 5724,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 130,
+   "peakTrackedMemBytes": 5724
+  }
+ ],
+ "queryShapeHash": "C1A89F675A2E2BF2D2879575AFC275972F8A3800D285183FE3762094304D04EE",
+ "peakTrackedMemBytes": 5850478,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "staff",
+  "pipeline": [
+   {
+    "$match": {
+     "_id": 7
+    }
+   },
+   {
+    "$graphLookup": {
+     "from": "referrals",
+     "startWith": "$_id",
+     "connectFromField": "to_doctor",
+     "connectToField": "from_doctor",
+     "as": "chain",
+     "maxDepth": 2,
+     "depthField": "hops"
+    }
+   },
+   {
+    "$unwind": "$chain"
+   },
+   {
+    "$group": {
+     "_id": {
+      "hops": "$chain.hops",
+      "department": "$chain.to_department"
+     },
+     "referrals": {
+      "$sum": 1
+     }
+    }
+   },
+   {
+    "$sort": {
+     "_id.hops": 1,
+     "referrals": -1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

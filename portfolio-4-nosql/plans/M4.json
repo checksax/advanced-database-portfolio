@@ -1,0 +1,265 @@
+{
+ "explainVersion": "1",
+ "queryPlanner": {
+  "namespace": "stgrace_hospital.patients",
+  "parsedQuery": {
+   "$and": [
+    {
+     "name.last": {
+      "$eq": "okafor"
+     }
+    },
+    {
+     "name.first": {
+      "$lt": "nh"
+     }
+    },
+    {
+     "name.first": {
+      "$gte": "ng"
+     }
+    }
+   ]
+  },
+  "collation": {
+   "locale": "en",
+   "caseLevel": false,
+   "caseFirst": "off",
+   "strength": 2,
+   "numericOrdering": false,
+   "alternate": "non-ignorable",
+   "maxVariable": "punct",
+   "normalization": false,
+   "backwards": false,
+   "version": "57.1"
+  },
+  "indexFilterSet": false,
+  "queryHash": "B5CF3A93",
+  "planCacheShapeHash": "B5CF3A93",
+  "planCacheKey": "C5DE25CE",
+  "optimizationTimeMillis": 0,
+  "optimizationTimeMicros": 384,
+  "maxIndexedOrSolutionsReached": false,
+  "maxIndexedAndSolutionsReached": false,
+  "maxScansToExplodeReached": false,
+  "prunedSimilarIndexes": false,
+  "winningPlan": {
+   "isCached": false,
+   "stage": "SORT",
+   "sortPattern": {
+    "date_of_birth": 1
+   },
+   "memLimit": 104857600,
+   "type": "simple",
+   "inputStage": {
+    "stage": "PROJECTION_SIMPLE",
+    "transformBy": {
+     "hospital_no": 1,
+     "name": 1,
+     "date_of_birth": 1
+    },
+    "inputStage": {
+     "stage": "FETCH",
+     "nss": "stgrace_hospital.patients",
+     "inputStage": {
+      "stage": "IXSCAN",
+      "nss": "stgrace_hospital.patients",
+      "keyPattern": {
+       "name.last": 1,
+       "name.first": 1
+      },
+      "indexName": "name_ci",
+      "collation": {
+       "locale": "en",
+       "caseLevel": false,
+       "caseFirst": "off",
+       "strength": 2,
+       "numericOrdering": false,
+       "alternate": "non-ignorable",
+       "maxVariable": "punct",
+       "normalization": false,
+       "backwards": false,
+       "version": "57.1"
+      },
+      "isMultiKey": false,
+      "multiKeyPaths": {
+       "name.last": [],
+       "name.first": []
+      },
+      "isUnique": false,
+      "isSparse": false,
+      "isPartial": false,
+      "indexVersion": 2,
+      "direction": "forward",
+      "indexBounds": {
+       "name.last": [
+        "[CollationKey(0x453d2933454b010a), CollationKey(0x453d2933454b010a)]"
+       ],
+       "name.first": [
+        "[CollationKey(0x43350106), CollationKey(0x43370106))"
+       ]
+      }
+     }
+    }
+   }
+  },
+  "rejectedPlans": []
+ },
+ "executionStats": {
+  "executionSuccess": true,
+  "nReturned": 11,
+  "executionTimeMillis": 1,
+  "executionTimeMicros": 1336,
+  "totalKeysExamined": 11,
+  "totalDocsExamined": 11,
+  "executionStages": {
+   "isCached": false,
+   "stage": "SORT",
+   "nReturned": 11,
+   "executionTimeMillisEstimate": 0,
+   "works": 24,
+   "advanced": 11,
+   "needTime": 12,
+   "needYield": 0,
+   "saveState": 0,
+   "restoreState": 0,
+   "isEOF": 1,
+   "sortPattern": {
+    "date_of_birth": 1
+   },
+   "memLimit": 104857600,
+   "type": "simple",
+   "totalDataSizeSorted": 1573,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledRecords": 0,
+   "spilledBytes": 0,
+   "spilledDataStorageSize": 0,
+   "peakTrackedMemBytes": 1573,
+   "inputStage": {
+    "stage": "PROJECTION_SIMPLE",
+    "nReturned": 11,
+    "executionTimeMillisEstimate": 0,
+    "works": 12,
+    "advanced": 11,
+    "needTime": 0,
+    "needYield": 0,
+    "saveState": 0,
+    "restoreState": 0,
+    "isEOF": 1,
+    "transformBy": {
+     "hospital_no": 1,
+     "name": 1,
+     "date_of_birth": 1
+    },
+    "inputStage": {
+     "stage": "FETCH",
+     "nReturned": 11,
+     "executionTimeMillisEstimate": 0,
+     "works": 12,
+     "advanced": 11,
+     "needTime": 0,
+     "needYield": 0,
+     "saveState": 0,
+     "restoreState": 0,
+     "isEOF": 1,
+     "nss": "stgrace_hospital.patients",
+     "docsExamined": 11,
+     "alreadyHasObj": 0,
+     "inputStage": {
+      "stage": "IXSCAN",
+      "nReturned": 11,
+      "executionTimeMillisEstimate": 0,
+      "works": 12,
+      "advanced": 11,
+      "needTime": 0,
+      "needYield": 0,
+      "saveState": 0,
+      "restoreState": 0,
+      "isEOF": 1,
+      "nss": "stgrace_hospital.patients",
+      "keyPattern": {
+       "name.last": 1,
+       "name.first": 1
+      },
+      "indexName": "name_ci",
+      "collation": {
+       "locale": "en",
+       "caseLevel": false,
+       "caseFirst": "off",
+       "strength": 2,
+       "numericOrdering": false,
+       "alternate": "non-ignorable",
+       "maxVariable": "punct",
+       "normalization": false,
+       "backwards": false,
+       "version": "57.1"
+      },
+      "isMultiKey": false,
+      "multiKeyPaths": {
+       "name.last": [],
+       "name.first": []
+      },
+      "isUnique": false,
+      "isSparse": false,
+      "isPartial": false,
+      "indexVersion": 2,
+      "direction": "forward",
+      "indexBounds": {
+       "name.last": [
+        "[CollationKey(0x453d2933454b010a), CollationKey(0x453d2933454b010a)]"
+       ],
+       "name.first": [
+        "[CollationKey(0x43350106), CollationKey(0x43370106))"
+       ]
+      },
+      "keysExamined": 11,
+      "seeks": 1,
+      "dupsTested": 0,
+      "dupsDropped": 0,
+      "peakTrackedMemBytes": 0
+     }
+    }
+   }
+  }
+ },
+ "queryShapeHash": "B17C6368A6209A454E8CADF7EE2CE515B67F5DC388AAC1B889A913EC9F4DB81A",
+ "peakTrackedMemBytes": 1573,
+ "command": {
+  "find": "patients",
+  "filter": {
+   "name.last": "okafor",
+   "name.first": {
+    "$gte": "ng",
+    "$lt": "nh"
+   }
+  },
+  "sort": {
+   "date_of_birth": 1
+  },
+  "projection": {
+   "hospital_no": 1,
+   "name": 1,
+   "date_of_birth": 1
+  },
+  "collation": {
+   "locale": "en",
+   "strength": 2
+  },
+  "$db": "stgrace_hospital"
+ },
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "ok": 1.0
+}

@@ -1,0 +1,76 @@
+{
+  "_id": 8,
+  "hospital_no": "SGH-0000008",
+  "name": {
+    "first": "Tunde",
+    "last": "Osagie"
+  },
+  "date_of_birth": {
+    "$date": "2003-12-30T00:00:00Z"
+  },
+  "gender": "M",
+  "blood_group": "O+",
+  "genotype": "AA",
+  "contact": {
+    "phone": "08052400711",
+    "address": "90 Aminu Kano Crescent",
+    "state_of_origin": "Abia"
+  },
+  "next_of_kin": {
+    "name": "Comfort Osagie",
+    "phone": "08095329372"
+  },
+  "insurance": {
+    "provider": "Hygeia HMO",
+    "coverage_percent": 80.0,
+    "policy_no": "POL-80456949"
+  },
+  "allergies": [
+    {
+      "allergen": "Peanuts",
+      "severity": "Mild"
+    }
+  ],
+  "registered_at": {
+    "$date": "2017-08-23T00:00:00Z"
+  },
+  "stats": {
+    "encounters": 58,
+    "admissions": 4,
+    "last_visit": {
+      "$date": "2026-10-19T22:08:29Z"
+    },
+    "total_billed": {
+      "$numberDecimal": "2050452.00"
+    },
+    "outstanding": {
+      "$numberDecimal": "24086.89"
+    }
+  },
+  "recent_encounters": [
+    {
+      "encounter_id": 169372,
+      "date": {
+        "$date": "2026-10-19T22:08:29Z"
+      },
+      "type": "Emergency",
+      "primary_diagnosis": "I63.9"
+    },
+    {
+      "encounter_id": 168048,
+      "date": {
+        "$date": "2026-10-14T09:14:33Z"
+      },
+      "type": "Emergency",
+      "primary_diagnosis": "I63.9"
+    },
+    {
+      "encounter_id": 167908,
+      "date": {
+        "$date": "2026-10-13T14:24:00Z"
+      },
+      "type": "Outpatient",
+      "primary_diagnosis": "Z00.0"
+    }
+  ]
+}

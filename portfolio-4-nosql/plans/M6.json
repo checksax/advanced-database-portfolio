@@ -1,0 +1,269 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "$and": [
+       {
+        "prescription.status": {
+         "$eq": "Dispensed"
+        }
+       },
+       {
+        "date": {
+         "$gte": {
+          "$date": "2026-08-05T09:00:00Z"
+         }
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "3E98BF55",
+     "planCacheShapeHash": "3E98BF55",
+     "planCacheKey": "2669A698",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 312,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "PROJECTION_DEFAULT",
+      "transformBy": {
+       "prescription.items": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "FETCH",
+       "filter": {
+        "prescription.status": {
+         "$eq": "Dispensed"
+        }
+       },
+       "nss": "stgrace_hospital.encounters",
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "date": 1
+        },
+        "indexName": "date",
+        "isMultiKey": false,
+        "multiKeyPaths": {
+         "date": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "date": [
+          "[new Date(1785920400000), new Date(9223372036854775807)]"
+         ]
+        }
+       }
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 16800,
+     "executionTimeMillis": 211,
+     "executionTimeMicros": 211605,
+     "totalKeysExamined": 21377,
+     "totalDocsExamined": 21377,
+     "executionStages": {
+      "isCached": false,
+      "stage": "PROJECTION_DEFAULT",
+      "nReturned": 16800,
+      "executionTimeMillisEstimate": 71,
+      "works": 21378,
+      "advanced": 16800,
+      "needTime": 4577,
+      "needYield": 0,
+      "saveState": 19,
+      "restoreState": 18,
+      "isEOF": 1,
+      "transformBy": {
+       "prescription.items": 1,
+       "_id": 0
+      },
+      "peakTrackedMemBytes": 0,
+      "inputStage": {
+       "stage": "FETCH",
+       "filter": {
+        "prescription.status": {
+         "$eq": "Dispensed"
+        }
+       },
+       "nReturned": 16800,
+       "executionTimeMillisEstimate": 68,
+       "works": 21378,
+       "advanced": 16800,
+       "needTime": 4577,
+       "needYield": 0,
+       "saveState": 19,
+       "restoreState": 18,
+       "isEOF": 1,
+       "nss": "stgrace_hospital.encounters",
+       "docsExamined": 21377,
+       "alreadyHasObj": 0,
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nReturned": 21377,
+        "executionTimeMillisEstimate": 28,
+        "works": 21378,
+        "advanced": 21377,
+        "needTime": 0,
+        "needYield": 0,
+        "saveState": 19,
+        "restoreState": 18,
+        "isEOF": 1,
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "date": 1
+        },
+        "indexName": "date",
+        "isMultiKey": false,
+        "multiKeyPaths": {
+         "date": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "date": [
+          "[new Date(1785920400000), new Date(9223372036854775807)]"
+         ]
+        },
+        "keysExamined": 21377,
+        "seeks": 1,
+        "dupsTested": 0,
+        "dupsDropped": 0,
+        "peakTrackedMemBytes": 0
+       }
+      }
+     }
+    }
+   },
+   "nReturned": 16800,
+   "executionTimeMillisEstimate": 110
+  },
+  {
+   "$unwind": {
+    "path": "$prescription.items"
+   },
+   "nReturned": 33998,
+   "executionTimeMillisEstimate": 165
+  },
+  {
+   "$group": {
+    "_id": "$prescription.items.drug",
+    "units": {
+     "$sum": "$prescription.items.dispensed"
+    },
+    "prescriptions": {
+     "$sum": {
+      "$const": 1
+     }
+    },
+    "$willBeMerged": false
+   },
+   "nReturned": 20,
+   "executionTimeMillisEstimate": 206,
+   "maxAccumulatorMemoryUsageBytes": {
+    "units": 4640,
+    "prescriptions": 4640
+   },
+   "totalOutputDataSizeBytes": 5703,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 9923
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "units": -1
+    },
+    "limit": 10
+   },
+   "totalDataSizeSortedBytesEstimate": 2884,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 10,
+   "executionTimeMillisEstimate": 206,
+   "peakTrackedMemBytes": 2894
+  }
+ ],
+ "queryShapeHash": "488102B4726373D8DA584381308B6203B76C7A1CCDF49E382F4A9C9959788876",
+ "peakTrackedMemBytes": 12817,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "date": {
+      "$gte": {
+       "$date": "2026-08-05T09:00:00Z"
+      }
+     },
+     "prescription.status": "Dispensed"
+    }
+   },
+   {
+    "$unwind": "$prescription.items"
+   },
+   {
+    "$group": {
+     "_id": "$prescription.items.drug",
+     "units": {
+      "$sum": "$prescription.items.dispensed"
+     },
+     "prescriptions": {
+      "$sum": 1
+     }
+    }
+   },
+   {
+    "$sort": {
+     "units": -1
+    }
+   },
+   {
+    "$limit": 10
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

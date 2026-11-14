@@ -1,0 +1,326 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "$and": [
+       {
+        "labs.result.flag": {
+         "$eq": "Critical"
+        }
+       },
+       {
+        "labs.result.resulted_at": {
+         "$gte": {
+          "$date": "2026-10-27T00:00:00Z"
+         }
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "FCC866E9",
+     "planCacheShapeHash": "FCC866E9",
+     "planCacheKey": "84EEE95A",
+     "optimizationTimeMillis": 0,
+     "optimizationTimeMicros": 413,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": false,
+      "stage": "PROJECTION_DEFAULT",
+      "transformBy": {
+       "labs": 1,
+       "patient.hospital_no": 1,
+       "patient.patient_id": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "FETCH",
+       "nss": "stgrace_hospital.encounters",
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "labs.result.resulted_at": -1
+        },
+        "indexName": "critical_labs",
+        "isMultiKey": true,
+        "multiKeyPaths": {
+         "labs.result.resulted_at": [
+          "labs"
+         ]
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": true,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "labs.result.resulted_at": [
+          "[new Date(9223372036854775807), new Date(1793059200000)]"
+         ]
+        }
+       }
+      }
+     },
+     "rejectedPlans": []
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 78,
+     "executionTimeMillis": 24,
+     "executionTimeMicros": 24554,
+     "totalKeysExamined": 121,
+     "totalDocsExamined": 78,
+     "executionStages": {
+      "isCached": false,
+      "stage": "PROJECTION_DEFAULT",
+      "nReturned": 78,
+      "executionTimeMillisEstimate": 0,
+      "works": 122,
+      "advanced": 78,
+      "needTime": 43,
+      "needYield": 0,
+      "saveState": 4,
+      "restoreState": 3,
+      "isEOF": 1,
+      "transformBy": {
+       "labs": 1,
+       "patient.hospital_no": 1,
+       "patient.patient_id": 1,
+       "_id": 0
+      },
+      "peakTrackedMemBytes": 0,
+      "inputStage": {
+       "stage": "FETCH",
+       "nReturned": 78,
+       "executionTimeMillisEstimate": 0,
+       "works": 122,
+       "advanced": 78,
+       "needTime": 43,
+       "needYield": 0,
+       "saveState": 4,
+       "restoreState": 3,
+       "isEOF": 1,
+       "nss": "stgrace_hospital.encounters",
+       "docsExamined": 78,
+       "alreadyHasObj": 0,
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nReturned": 78,
+        "executionTimeMillisEstimate": 0,
+        "works": 122,
+        "advanced": 78,
+        "needTime": 43,
+        "needYield": 0,
+        "saveState": 4,
+        "restoreState": 3,
+        "isEOF": 1,
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "labs.result.resulted_at": -1
+        },
+        "indexName": "critical_labs",
+        "isMultiKey": true,
+        "multiKeyPaths": {
+         "labs.result.resulted_at": [
+          "labs"
+         ]
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": true,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "labs.result.resulted_at": [
+          "[new Date(9223372036854775807), new Date(1793059200000)]"
+         ]
+        },
+        "keysExamined": 121,
+        "seeks": 1,
+        "dupsTested": 121,
+        "dupsDropped": 43,
+        "peakTrackedMemBytes": 750
+       }
+      }
+     }
+    }
+   },
+   "nReturned": 78,
+   "executionTimeMillisEstimate": 1
+  },
+  {
+   "$unwind": {
+    "path": "$labs"
+   },
+   "nReturned": 130,
+   "executionTimeMillisEstimate": 1
+  },
+  {
+   "$match": {
+    "$and": [
+     {
+      "labs.result.flag": {
+       "$eq": "Critical"
+      }
+     },
+     {
+      "labs.result.resulted_at": {
+       "$gte": {
+        "$date": "2026-10-27T00:00:00Z"
+       }
+      }
+     }
+    ]
+   },
+   "nReturned": 76,
+   "executionTimeMillisEstimate": 1,
+   "expressionEvaluationPeakMemoryBytes": 1012
+  },
+  {
+   "$lookup": {
+    "from": "patients",
+    "as": "p",
+    "localField": "patient.patient_id",
+    "foreignField": "_id",
+    "let": {},
+    "pipeline": [
+     {
+      "$project": {
+       "_id": true,
+       "contact": {
+        "phone": true
+       }
+      }
+     }
+    ]
+   },
+   "nReturned": 76,
+   "executionTimeMillisEstimate": 24,
+   "totalDocsExamined": 76,
+   "totalKeysExamined": 76,
+   "collectionScans": 0,
+   "indexesUsed": [
+    "_id_"
+   ],
+   "expressionEvaluationPeakMemoryBytes": 0
+  },
+  {
+   "$project": {
+    "resulted_at": "$labs.result.resulted_at",
+    "test": "$labs.test",
+    "hospital_no": "$patient.hospital_no",
+    "phone": {
+     "$first": [
+      "$p.contact.phone"
+     ]
+    },
+    "_id": false
+   },
+   "nReturned": 76,
+   "executionTimeMillisEstimate": 24,
+   "expressionEvaluationPeakMemoryBytes": 0
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "resulted_at": -1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 27114,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 76,
+   "executionTimeMillisEstimate": 24,
+   "peakTrackedMemBytes": 27114
+  }
+ ],
+ "queryShapeHash": "67806B60A6D494CA39935F4F985E9C7065926D726CCCB89BE669ED595621D598",
+ "peakTrackedMemBytes": 28876,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "labs.result.flag": "Critical",
+     "labs.result.resulted_at": {
+      "$gte": {
+       "$date": "2026-10-27T00:00:00Z"
+      }
+     }
+    }
+   },
+   {
+    "$unwind": "$labs"
+   },
+   {
+    "$match": {
+     "labs.result.flag": "Critical",
+     "labs.result.resulted_at": {
+      "$gte": {
+       "$date": "2026-10-27T00:00:00Z"
+      }
+     }
+    }
+   },
+   {
+    "$lookup": {
+     "from": "patients",
+     "localField": "patient.patient_id",
+     "foreignField": "_id",
+     "as": "p",
+     "pipeline": [
+      {
+       "$project": {
+        "contact.phone": 1
+       }
+      }
+     ]
+    }
+   },
+   {
+    "$project": {
+     "_id": 0,
+     "resulted_at": "$labs.result.resulted_at",
+     "test": "$labs.test",
+     "hospital_no": "$patient.hospital_no",
+     "phone": {
+      "$first": "$p.contact.phone"
+     }
+    }
+   },
+   {
+    "$sort": {
+     "resulted_at": -1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}

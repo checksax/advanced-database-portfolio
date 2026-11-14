@@ -1,0 +1,366 @@
+{
+ "explainVersion": "1",
+ "stages": [
+  {
+   "$cursor": {
+    "queryPlanner": {
+     "namespace": "stgrace_hospital.encounters",
+     "parsedQuery": {
+      "$and": [
+       {
+        "date": {
+         "$lt": {
+          "$date": "2026-11-03T00:00:00Z"
+         }
+        }
+       },
+       {
+        "date": {
+         "$gte": {
+          "$date": "2026-08-04T00:00:00Z"
+         }
+        }
+       },
+       {
+        "diagnoses.code": {
+         "$in": [
+          "B50.9",
+          "B54"
+         ]
+        }
+       }
+      ]
+     },
+     "indexFilterSet": false,
+     "queryHash": "1E1125C0",
+     "planCacheShapeHash": "1E1125C0",
+     "planCacheKey": "19774D3C",
+     "optimizationTimeMillis": 1,
+     "optimizationTimeMicros": 1497,
+     "cursorType": "regular",
+     "maxIndexedOrSolutionsReached": false,
+     "maxIndexedAndSolutionsReached": false,
+     "maxScansToExplodeReached": false,
+     "prunedSimilarIndexes": false,
+     "winningPlan": {
+      "isCached": true,
+      "stage": "PROJECTION_SIMPLE",
+      "transformBy": {
+       "date": 1,
+       "diagnoses": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "FETCH",
+       "nss": "stgrace_hospital.encounters",
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "diagnoses.code": 1,
+         "date": 1
+        },
+        "indexName": "diagnosis_date",
+        "isMultiKey": true,
+        "multiKeyPaths": {
+         "diagnoses.code": [
+          "diagnoses"
+         ],
+         "date": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "diagnoses.code": [
+          "[\"B50.9\", \"B50.9\"]",
+          "[\"B54\", \"B54\"]"
+         ],
+         "date": [
+          "[new Date(1785801600000), new Date(1793664000000))"
+         ]
+        }
+       }
+      }
+     },
+     "rejectedPlans": [
+      {
+       "isCached": false,
+       "stage": "PROJECTION_SIMPLE",
+       "transformBy": {
+        "date": 1,
+        "diagnoses": 1,
+        "_id": 0
+       },
+       "inputStage": {
+        "stage": "FETCH",
+        "filter": {
+         "diagnoses.code": {
+          "$in": [
+           "B50.9",
+           "B54"
+          ]
+         }
+        },
+        "nss": "stgrace_hospital.encounters",
+        "inputStage": {
+         "stage": "IXSCAN",
+         "nss": "stgrace_hospital.encounters",
+         "keyPattern": {
+          "date": 1
+         },
+         "indexName": "date",
+         "isMultiKey": false,
+         "multiKeyPaths": {
+          "date": []
+         },
+         "isUnique": false,
+         "isSparse": false,
+         "isPartial": false,
+         "indexVersion": 2,
+         "direction": "forward",
+         "indexBounds": {
+          "date": [
+           "[new Date(1785801600000), new Date(1793664000000))"
+          ]
+         }
+        }
+       }
+      }
+     ]
+    },
+    "executionStats": {
+     "executionSuccess": true,
+     "nReturned": 2867,
+     "executionTimeMillis": 47,
+     "executionTimeMicros": 47263,
+     "totalKeysExamined": 2929,
+     "totalDocsExamined": 2867,
+     "executionStages": {
+      "isCached": true,
+      "stage": "PROJECTION_SIMPLE",
+      "nReturned": 2867,
+      "executionTimeMillisEstimate": 6,
+      "works": 2929,
+      "advanced": 2867,
+      "needTime": 61,
+      "needYield": 0,
+      "saveState": 9,
+      "restoreState": 8,
+      "isEOF": 1,
+      "transformBy": {
+       "date": 1,
+       "diagnoses": 1,
+       "_id": 0
+      },
+      "inputStage": {
+       "stage": "FETCH",
+       "nReturned": 2867,
+       "executionTimeMillisEstimate": 6,
+       "works": 2929,
+       "advanced": 2867,
+       "needTime": 61,
+       "needYield": 0,
+       "saveState": 9,
+       "restoreState": 8,
+       "isEOF": 1,
+       "nss": "stgrace_hospital.encounters",
+       "docsExamined": 2867,
+       "alreadyHasObj": 0,
+       "inputStage": {
+        "stage": "IXSCAN",
+        "nReturned": 2867,
+        "executionTimeMillisEstimate": 6,
+        "works": 2929,
+        "advanced": 2867,
+        "needTime": 61,
+        "needYield": 0,
+        "saveState": 9,
+        "restoreState": 8,
+        "isEOF": 1,
+        "nss": "stgrace_hospital.encounters",
+        "keyPattern": {
+         "diagnoses.code": 1,
+         "date": 1
+        },
+        "indexName": "diagnosis_date",
+        "isMultiKey": true,
+        "multiKeyPaths": {
+         "diagnoses.code": [
+          "diagnoses"
+         ],
+         "date": []
+        },
+        "isUnique": false,
+        "isSparse": false,
+        "isPartial": false,
+        "indexVersion": 2,
+        "direction": "forward",
+        "indexBounds": {
+         "diagnoses.code": [
+          "[\"B50.9\", \"B50.9\"]",
+          "[\"B54\", \"B54\"]"
+         ],
+         "date": [
+          "[new Date(1785801600000), new Date(1793664000000))"
+         ]
+        },
+        "keysExamined": 2929,
+        "seeks": 3,
+        "dupsTested": 2926,
+        "dupsDropped": 59,
+        "peakTrackedMemBytes": 27030
+       }
+      }
+     }
+    }
+   },
+   "nReturned": 2867,
+   "executionTimeMillisEstimate": 22
+  },
+  {
+   "$unwind": {
+    "path": "$diagnoses"
+   },
+   "nReturned": 3737,
+   "executionTimeMillisEstimate": 25
+  },
+  {
+   "$match": {
+    "diagnoses.code": {
+     "$in": [
+      "B50.9",
+      "B54"
+     ]
+    }
+   },
+   "nReturned": 2926,
+   "executionTimeMillisEstimate": 37,
+   "expressionEvaluationPeakMemoryBytes": 512
+  },
+  {
+   "$group": {
+    "_id": {
+     "$dateTrunc": {
+      "date": "$date",
+      "unit": {
+       "$const": "week"
+      },
+      "startOfWeek": {
+       "$const": "monday"
+      }
+     }
+    },
+    "cases": {
+     "$sum": {
+      "$const": 1
+     }
+    },
+    "$willBeMerged": false
+   },
+   "nReturned": 14,
+   "executionTimeMillisEstimate": 41,
+   "maxAccumulatorMemoryUsageBytes": {
+    "cases": 3248
+   },
+   "totalOutputDataSizeBytes": 3318,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledDataStorageSize": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "peakTrackedMemBytes": 3472
+  },
+  {
+   "$sort": {
+    "sortKey": {
+     "_id": 1
+    }
+   },
+   "totalDataSizeSortedBytesEstimate": 3430,
+   "usedDisk": false,
+   "spills": 0,
+   "spilledBytes": 0,
+   "spilledRecords": 0,
+   "spilledDataStorageSize": 0,
+   "nReturned": 14,
+   "executionTimeMillisEstimate": 41,
+   "peakTrackedMemBytes": 3430
+  }
+ ],
+ "queryShapeHash": "824AA459AD1D7FD606E129AAA4D08887F598FD784AACB0FB4A8498BC8E7BE202",
+ "peakTrackedMemBytes": 34444,
+ "serverInfo": {
+  "host": "ImCheck",
+  "port": 27017,
+  "version": "9.0.4",
+  "gitVersion": "64ade602b836c9adeffba7fa038c887ffab56196"
+ },
+ "serverParameters": {
+  "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+  "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+  "internalQueryProhibitBlockingMergeOnMongoS": 0,
+  "internalQueryFrameworkControl": "trySbeRestricted",
+  "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+ },
+ "command": {
+  "aggregate": "encounters",
+  "pipeline": [
+   {
+    "$match": {
+     "diagnoses.code": {
+      "$in": [
+       "B54",
+       "B50.9"
+      ]
+     },
+     "date": {
+      "$gte": {
+       "$date": "2026-08-04T00:00:00Z"
+      },
+      "$lt": {
+       "$date": "2026-11-03T00:00:00Z"
+      }
+     }
+    }
+   },
+   {
+    "$unwind": "$diagnoses"
+   },
+   {
+    "$match": {
+     "diagnoses.code": {
+      "$in": [
+       "B54",
+       "B50.9"
+      ]
+     }
+    }
+   },
+   {
+    "$group": {
+     "_id": {
+      "$dateTrunc": {
+       "date": "$date",
+       "unit": "week",
+       "startOfWeek": "monday"
+      }
+     },
+     "cases": {
+      "$sum": 1
+     }
+    }
+   },
+   {
+    "$sort": {
+     "_id": 1
+    }
+   }
+  ],
+  "cursor": {},
+  "$db": "stgrace_hospital"
+ },
+ "ok": 1.0
+}
