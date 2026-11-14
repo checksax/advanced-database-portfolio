@@ -1,0 +1,87 @@
+SET
+=== T1  Doctor double-booking (EXCLUDE constraint no_doctor_double_booking) ===
+BEGIN
+INSERT 0 1
+--- overlapping slot for the same doctor, SHOULD FAIL:
+psql:sql/03_constraint_tests.sql:18: ERROR:  conflicting key value violates exclusion constraint "no_doctor_double_booking"
+DETAIL:  Key (doctor_id, tsrange(scheduled_start, scheduled_end))=(1, ["2030-01-07 09:15:00","2030-01-07 09:45:00")) conflicts with existing key (doctor_id, tsrange(scheduled_start, scheduled_end))=(1, ["2030-01-07 09:00:00","2030-01-07 09:30:00")).
+ROLLBACK
+=== T2  Cancelled appointments free the slot (partial EXCLUDE) - SHOULD SUCCEED ===
+BEGIN
+INSERT 0 1
+INSERT 0 1
+                    result                    
+----------------------------------------------
+ T2 passed: slot re-booked after cancellation
+(1 row)
+
+ROLLBACK
+=== T3  Appointment ends before it starts (CHECK chk_appt_times) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:33: ERROR:  new row for relation "appointments" violates check constraint "chk_appt_times"
+DETAIL:  Failing row contains (201333, 1, 1, 2030-01-08 11:00:00, 2030-01-08 10:00:00, Scheduled, null, 2026-11-03 21:27:52.278351).
+ROLLBACK
+=== T4  Two current patients in one bed (partial UNIQUE uq_active_admission_bed) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:40: ERROR:  duplicate key value violates unique constraint "uq_active_admission_bed"
+DETAIL:  Key (bed_id)=(2) already exists.
+ROLLBACK
+=== T5  Drug stock cannot go negative (CHECK stock_quantity >= 0) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:45: ERROR:  new row for relation "drugs" violates check constraint "drugs_stock_quantity_check"
+DETAIL:  Failing row contains (2, Paracetamol, Emzor, Tablet, 500 mg, 20.00, -980000, 2000).
+ROLLBACK
+=== T6  Dispense more than prescribed (CHECK chk_dispensed_range) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:51: ERROR:  new row for relation "prescription_items" violates check constraint "chk_dispensed_range"
+DETAIL:  Failing row contains (1, 18, 500 ml, Every 8 hours, 1, 4, 5).
+ROLLBACK
+=== T7  Duplicate hospital number (UNIQUE) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:57: ERROR:  duplicate key value violates unique constraint "patients_hospital_no_key"
+DETAIL:  Key (hospital_no)=(SGH-0000001) already exists.
+ROLLBACK
+=== T8  Invalid genotype value (CHECK) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:63: ERROR:  new row for relation "patients" violates check constraint "patients_genotype_check"
+DETAIL:  Failing row contains (50002, SGH-TEST001, Test, Genotype, 1990-01-01, F, null, XX, 08030000000, null, null, null, null, null, null, null, 2026-11-03 21:27:52.35626).
+ROLLBACK
+=== T9  Policy number without an insurer (CHECK chk_insurance_pair) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:69: ERROR:  new row for relation "patients" violates check constraint "chk_insurance_pair"
+DETAIL:  Failing row contains (50003, SGH-TEST002, Test, Policy, 1990-01-01, F, null, null, 08030000000, null, null, null, null, null, null, POL-00000000, 2026-11-03 21:27:52.358904).
+ROLLBACK
+=== T10 Diagnosis with unknown ICD-10 code (FOREIGN KEY) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:74: ERROR:  insert or update on table "diagnoses" violates foreign key constraint "diagnoses_icd10_code_fkey"
+DETAIL:  Key (icd10_code)=(ZZZ.9) is not present in table "icd10_codes".
+ROLLBACK
+=== T11 Inpatient encounter with no admission (CHECK chk_inpatient_has_admission) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:80: ERROR:  new row for relation "encounters" violates check constraint "chk_inpatient_has_admission"
+DETAIL:  Failing row contains (172744, 1, 1, null, null, Inpatient, 2026-11-03 21:27:52.419877, null, null, null, null, null, null, null).
+ROLLBACK
+=== T12 Zero or negative payment (CHECK amount > 0) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:86: ERROR:  new row for relation "payments" violates check constraint "payments_amount_check"
+DETAIL:  Failing row contains (227853, 1, -500.00, Cash, null, 2026-11-03 21:27:52.426801, 321).
+ROLLBACK
+=== T13 Lab result with no value at all (CHECK chk_result_present) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:94: ERROR:  new row for relation "lab_results" violates check constraint "chk_result_present"
+DETAIL:  Failing row contains (13, null, null, Normal, 281, 2026-11-03 21:27:52.442352).
+ROLLBACK
+=== T14 Delete a patient who has clinical history (FK RESTRICT) - SHOULD FAIL ===
+BEGIN
+psql:sql/03_constraint_tests.sql:99: ERROR:  update or delete on table "patients" violates foreign key constraint "appointments_patient_id_fkey" on table "appointments"
+DETAIL:  Key (patient_id)=(24547) is still referenced from table "appointments".
+ROLLBACK
+=== T15 Generated column line_total is computed, not typed - SHOULD SUCCEED ===
+ invoice_item_id | quantity | unit_price | line_total | check_value 
+-----------------+----------+------------+------------+-------------
+               1 |        1 |   15000.00 |   15000.00 |    15000.00
+               2 |        4 |     900.00 |    3600.00 |     3600.00
+               3 |        6 |      45.00 |     270.00 |      270.00
+(3 rows)
+
+=== Done ===

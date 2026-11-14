@@ -1,0 +1,33 @@
+                                                                Table "hospital.appointments"
+     Column      |            Type             | Collation | Nullable |            Default             | Storage  | Compression | Stats target | Description 
+-----------------+-----------------------------+-----------+----------+--------------------------------+----------+-------------+--------------+-------------
+ appointment_id  | integer                     |           | not null | generated always as identity   | plain    |             |              | 
+ patient_id      | integer                     |           | not null |                                | plain    |             |              | 
+ doctor_id       | integer                     |           | not null |                                | plain    |             |              | 
+ scheduled_start | timestamp without time zone |           | not null |                                | plain    |             |              | 
+ scheduled_end   | timestamp without time zone |           | not null |                                | plain    |             |              | 
+ status          | character varying(12)       |           | not null | 'Scheduled'::character varying | extended |             |              | 
+ reason          | character varying(200)      |           |          |                                | extended |             |              | 
+ booked_at       | timestamp without time zone |           | not null | now()                          | plain    |             |              | 
+Indexes:
+    "appointments_pkey" PRIMARY KEY, btree (appointment_id)
+    "idx_appt_patient" btree (patient_id)
+    "no_doctor_double_booking" EXCLUDE USING gist (doctor_id WITH =, tsrange(scheduled_start, scheduled_end) WITH &&) WHERE (status::text <> 'Cancelled'::text)
+Check constraints:
+    "appointments_status_check" CHECK (status::text = ANY (ARRAY['Scheduled'::character varying, 'CheckedIn'::character varying, 'Completed'::character varying, 'Cancelled'::character varying, 'NoShow'::character varying]::text[]))
+    "chk_appt_times" CHECK (scheduled_end > scheduled_start)
+Foreign-key constraints:
+    "appointments_doctor_id_fkey" FOREIGN KEY (doctor_id) REFERENCES doctors(staff_id)
+    "appointments_patient_id_fkey" FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+Referenced by:
+    TABLE "encounters" CONSTRAINT "encounters_appointment_id_fkey" FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
+Not-null constraints:
+    "appointments_appointment_id_not_null" NOT NULL "appointment_id"
+    "appointments_patient_id_not_null" NOT NULL "patient_id"
+    "appointments_doctor_id_not_null" NOT NULL "doctor_id"
+    "appointments_scheduled_start_not_null" NOT NULL "scheduled_start"
+    "appointments_scheduled_end_not_null" NOT NULL "scheduled_end"
+    "appointments_status_not_null" NOT NULL "status"
+    "appointments_booked_at_not_null" NOT NULL "booked_at"
+Access method: heap
+

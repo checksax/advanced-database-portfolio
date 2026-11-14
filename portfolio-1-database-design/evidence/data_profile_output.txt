@@ -1,0 +1,67 @@
+SET
+=== Row counts per table ===
+     table_name      | approx_rows 
+---------------------+-------------
+ invoice_items       |      667013
+ prescription_items  |      282410
+ payments            |      227852
+ lab_orders          |      214900
+ lab_results         |      210253
+ diagnoses           |      204659
+ appointments        |      201328
+ encounters          |      172743
+ invoices            |      172707
+ prescriptions       |      140054
+ patients            |       50000
+ admissions          |        9737
+ patient_allergies   |        6838
+ staff               |         360
+ beds                |         108
+ doctors             |          80
+ icd10_codes         |          25
+ drugs               |          20
+ lab_tests           |          15
+ departments         |          10
+ wards               |           6
+ insurance_providers |           5
+(22 rows)
+
+=== Constraints defined, by type ===
+ constraint_type | how_many 
+-----------------+----------
+ NOT NULL        |      116
+ CHECK           |       45
+ FOREIGN KEY     |       34
+ PRIMARY KEY     |       22
+ UNIQUE          |       14
+ EXCLUDE         |        1
+(6 rows)
+
+=== Consistency checks (every count should be 0) ===
+                   check_name                   | violations 
+------------------------------------------------+------------
+ overlapping doctor appointments                |          0
+ overlapping stays in the same bed              |          0
+ occupied flag disagrees with active admissions |          0
+ invoices overpaid                              |          0
+ Paid invoices with balance left                |          0
+ maternity diagnoses on male patients           |          0
+(6 rows)
+
+=== Sample: one patient's summary ===
+ patient_id | hospital_no |   full_name    | age_years | gender | blood_group | genotype |                  insurer                   
+------------+-------------+----------------+-----------+--------+-------------+----------+--------------------------------------------
+          1 | SGH-0000001 | Patience Bello |        58 | F      | O+          | AA       | NHIA (National Health Insurance Authority)
+(1 row)
+
+=== Sample: current bed occupancy ===
+ ward_id |           ward            | ward_type  | total_beds | occupied | occupancy_pct 
+---------+---------------------------+------------+------------+----------+---------------
+       1 | Mary Slessor Ward         | Private    |         20 |        6 |          30.0
+       2 | Florence Nightingale Ward | General    |         20 |        9 |          45.0
+       3 | Rainbow Children Ward     | Paediatric |         20 |        9 |          45.0
+       4 | Mother & Child Ward       | Maternity  |         20 |        2 |          10.0
+       5 | Surgical Ward             | Surgical   |         20 |        7 |          35.0
+       6 | Intensive Care Unit       | ICU        |          8 |        3 |          37.5
+(6 rows)
+

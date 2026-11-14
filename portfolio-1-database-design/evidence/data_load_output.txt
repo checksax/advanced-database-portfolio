@@ -1,0 +1,22 @@
+Rebuilding schema ...
+  running 01_schema.sql
+  running 02_reference_data.sql
+Generating data ...
+Loading with COPY ...
+  staff                      360 rows
+  doctors                     80 rows
+  patients                50,000 rows
+  patient_allergies        6,838 rows
+  appointments           201,328 rows
+  admissions               9,737 rows
+  encounters             172,743 rows
+  diagnoses              204,659 rows
+  prescriptions          140,054 rows
+  prescription_items     282,410 rows
+  lab_orders             214,900 rows
+  lab_results            210,253 rows
+  invoices               172,707 rows
+  invoice_items          667,013 rows
+  payments               227,852 rows
+Updating planner statistics ...
+Done in 481.5s
