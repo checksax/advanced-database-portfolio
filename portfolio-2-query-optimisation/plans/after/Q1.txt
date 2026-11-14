@@ -1,0 +1,30 @@
+-- Q1: Reception: a doctor's appointment list for tomorrow
+-- rows returned: 10
+-- wall-clock median of 7 runs: 0.78 ms
+
+SELECT a.scheduled_start,
+       a.status,
+       p.hospital_no,
+       p.first_name || ' ' || p.last_name AS patient
+FROM hospital.appointments a
+JOIN hospital.patients p ON p.patient_id = a.patient_id
+WHERE a.doctor_id = 23
+  AND a.scheduled_start >= '2026-11-04'
+  AND a.scheduled_start <  '2026-11-05'
+ORDER BY a.scheduled_start
+
+Nested Loop  (cost=0.71..53.76 rows=4 width=61) (actual time=0.019..0.056 rows=10.00 loops=1)
+  Buffers: shared hit=38
+  ->  Index Scan using idx_appt_doctor_start on appointments a  (cost=0.42..20.51 rows=4 width=21) (actual time=0.010..0.015 rows=10.00 loops=1)
+        Index Cond: ((doctor_id = 23) AND (scheduled_start >= '2026-11-04 00:00:00'::timestamp without time zone) AND (scheduled_start < '2026-11-05 00:00:00'::timestamp without time zone))
+        Index Searches: 1
+        Buffers: shared hit=8
+  ->  Index Scan using patients_pkey on patients p  (cost=0.29..8.31 rows=1 width=28) (actual time=0.003..0.003 rows=1.00 loops=10)
+        Index Cond: (patient_id = a.patient_id)
+        Index Searches: 10
+        Buffers: shared hit=30
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.468 ms
+Execution Time: 0.086 ms

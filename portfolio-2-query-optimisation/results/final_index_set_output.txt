@@ -1,0 +1,22 @@
+SET
+DROP INDEX
+DROP INDEX
+DROP INDEX
+SET
+ANALYZE
+RESET
+Indexes added by Portfolio 2 that remain:
+         index_name          |           on_table            |  size   
+-----------------------------+-------------------------------+---------
+ idx_invoice_items_inv_total | invoice_items                 | 20 MB
+ idx_payments_inv_amount     | payments                      | 7032 kB
+ idx_appt_doctor_start       | appointments                  | 6224 kB
+ idx_diagnoses_code_enc      | diagnoses                     | 5952 kB
+ idx_encounters_date         | encounters                    | 3536 kB
+ idx_patients_name_search    | patients                      | 520 kB
+ idx_invoices_open           | invoices                      | 256 kB
+ idx_lab_results_critical    | lab_results                   | 224 kB
+ idx_lab_orders_outstanding  | lab_orders                    | 32 kB
+ uq_mv_revenue               | mv_monthly_department_revenue | 16 kB
+(10 rows)
+

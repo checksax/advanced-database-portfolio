@@ -1,0 +1,50 @@
+-- Q5: Finance: top 50 outstanding invoice balances (through the view)
+-- rows returned: 50
+-- wall-clock median of 7 runs: 2657.43 ms
+
+SELECT invoice_no, patient_id, total_amount, amount_paid, balance_due
+FROM hospital.v_invoice_balance
+WHERE balance_due > 0
+ORDER BY balance_due DESC
+LIMIT 50
+
+Limit  (cost=52023.67..52029.36 rows=50 width=117) (actual time=3327.305..3363.386 rows=50.00 loops=1)
+  Buffers: shared hit=23945
+  ->  Gather Merge  (cost=52023.67..58584.84 rows=57569 width=117) (actual time=3327.303..3363.372 rows=50.00 loops=1)
+        Workers Planned: 1
+        Workers Launched: 1
+        Buffers: shared hit=23945
+        ->  Sort  (cost=51023.66..51108.32 rows=33864 width=117) (actual time=3236.543..3236.551 rows=41.50 loops=2)
+              Sort Key: ((COALESCE((sum(invoice_items.line_total)), '0'::numeric) - COALESCE((sum(payments.amount)), '0'::numeric))) DESC
+              Sort Method: top-N heapsort  Memory: 31kB
+              Buffers: shared hit=23945
+              Worker 0:  Sort Method: top-N heapsort  Memory: 31kB
+              ->  Merge Left Join  (cost=1.26..49898.72 rows=33864 width=117) (actual time=72.081..3211.602 rows=5321.00 loops=2)
+                    Merge Cond: (i.invoice_id = invoice_items.invoice_id)
+                    Filter: ((COALESCE((sum(invoice_items.line_total)), '0'::numeric) - COALESCE((sum(payments.amount)), '0'::numeric)) > '0'::numeric)
+                    Rows Removed by Filter: 81032
+                    Buffers: shared hit=23937
+                    ->  Merge Left Join  (cost=0.84..19659.14 rows=101592 width=57) (actual time=21.812..1076.342 rows=86353.50 loops=2)
+                          Merge Cond: (i.invoice_id = payments.invoice_id)
+                          Buffers: shared hit=8145
+                          ->  Parallel Index Scan using invoices_pkey on invoices i  (cost=0.42..5466.88 rows=101592 width=25) (actual time=0.095..71.391 rows=86353.50 loops=2)
+                                Index Searches: 1
+                                Buffers: shared hit=2412
+                          ->  GroupAggregate  (cost=0.42..11156.25 rows=151343 width=36) (actual time=0.086..811.580 rows=168010.50 loops=2)
+                                Group Key: payments.invoice_id
+                                Buffers: shared hit=5733
+                                ->  Index Scan using idx_payments_invoice on payments  (cost=0.42..8125.20 rows=227852 width=10) (actual time=0.070..188.395 rows=227466.00 loops=2)
+                                      Index Searches: 2
+                                      Buffers: shared hit=5733
+                    ->  Materialize  (cost=0.42..28244.58 rows=146276 width=36) (actual time=0.119..1849.065 rows=172363.50 loops=2)
+                          Storage: Memory  Maximum Storage: 17kB
+                          Buffers: shared hit=15792
+                          ->  GroupAggregate  (cost=0.42..26416.13 rows=146276 width=36) (actual time=0.093..1650.442 rows=172363.50 loops=2)
+                                Group Key: invoice_items.invoice_id
+                                Buffers: shared hit=15792
+                                ->  Index Scan using idx_invoice_items_inv on invoice_items  (cost=0.42..21252.62 rows=667013 width=9) (actual time=0.077..525.289 rows=665716.00 loops=2)
+                                      Index Searches: 2
+                                      Buffers: shared hit=15792
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning Time: 0.931 ms
+Execution Time: 3363.544 ms

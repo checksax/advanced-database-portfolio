@@ -1,0 +1,45 @@
+-- Q7: Public health: weekly malaria diagnoses, last 13 weeks
+-- rows returned: 14
+-- wall-clock median of 7 runs: 329.94 ms
+
+SELECT date_trunc('week', e.encounter_date) AS week,
+       COUNT(*)                             AS malaria_cases
+FROM hospital.diagnoses  d
+JOIN hospital.encounters e ON e.encounter_id = d.encounter_id
+WHERE d.icd10_code IN ('B54', 'B50.9')
+  AND e.encounter_date >= '2026-08-04'
+  AND e.encounter_date <  '2026-11-03'
+GROUP BY 1
+ORDER BY 1
+
+GroupAggregate  (cost=8229.81..8615.02 rows=2930 width=16) (actual time=385.897..415.780 rows=14.00 loops=1)
+  Group Key: (date_trunc('week'::text, e.encounter_date))
+  Buffers: shared hit=3923
+  ->  Gather Merge  (cost=8229.81..8563.74 rows=2930 width=8) (actual time=385.660..414.318 rows=2926.00 loops=1)
+        Workers Planned: 1
+        Workers Launched: 1
+        Buffers: shared hit=3923
+        ->  Sort  (cost=7229.80..7234.11 rows=1724 width=8) (actual time=290.789..291.063 rows=1463.00 loops=2)
+              Sort Key: (date_trunc('week'::text, e.encounter_date))
+              Sort Method: quicksort  Memory: 49kB
+              Buffers: shared hit=3923
+              Worker 0:  Sort Method: quicksort  Memory: 49kB
+              ->  Parallel Hash Join  (cost=4262.79..7137.12 rows=1724 width=8) (actual time=268.064..290.029 rows=1463.00 loops=2)
+                    Hash Cond: (d.encounter_id = e.encounter_id)
+                    Buffers: shared hit=3915
+                    ->  Parallel Seq Scan on diagnoses d  (cost=0.00..2832.85 rows=14162 width=4) (actual time=0.034..209.532 rows=11939.50 loops=2)
+                          Filter: ((icd10_code)::text = ANY ('{B54,B50.9}'::text[]))
+                          Rows Removed by Filter: 90390
+                          Buffers: shared hit=1331
+                    ->  Parallel Hash  (cost=4108.20..4108.20 rows=12367 width=12) (actual time=60.455..60.456 rows=10856.00 loops=2)
+                          Buckets: 32768  Batches: 1  Memory Usage: 1280kB
+                          Buffers: shared hit=2584
+                          ->  Parallel Seq Scan on encounters e  (cost=0.00..4108.20 rows=12367 width=12) (actual time=70.902..95.370 rows=21712.00 loops=1)
+                                Filter: ((encounter_date >= '2026-08-04 00:00:00'::timestamp without time zone) AND (encounter_date < '2026-11-03 00:00:00'::timestamp without time zone))
+                                Rows Removed by Filter: 151031
+                                Buffers: shared hit=2584
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=17
+Planning Time: 0.887 ms
+Execution Time: 415.865 ms

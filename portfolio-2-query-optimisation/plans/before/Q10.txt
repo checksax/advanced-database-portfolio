@@ -1,0 +1,54 @@
+-- Q10: Quality: readmissions within 30 days of discharge, last 12 months
+-- rows returned: 108
+-- wall-clock median of 7 runs: 108.52 ms
+
+WITH stays AS (
+    SELECT patient_id,
+           admission_id,
+           admitted_at,
+           LAG(discharged_at) OVER (PARTITION BY patient_id ORDER BY admitted_at) AS previous_discharge
+    FROM hospital.admissions
+)
+SELECT p.hospital_no,
+       s.admission_id,
+       s.previous_discharge,
+       s.admitted_at,
+       s.admitted_at - s.previous_discharge AS gap
+FROM stays s
+JOIN hospital.patients p ON p.patient_id = s.patient_id
+WHERE s.previous_discharge IS NOT NULL
+  AND s.admitted_at - s.previous_discharge <= INTERVAL '30 days'
+  AND s.admitted_at >= '2025-11-03'
+ORDER BY gap
+
+Sort  (cost=3531.34..3535.40 rows=1622 width=48) (actual time=135.847..135.865 rows=108.00 loops=1)
+  Sort Key: ((s.admitted_at - s.previous_discharge))
+  Sort Method: quicksort  Memory: 31kB
+  Buffers: shared hit=1204
+  ->  Hash Join  (cost=3071.41..3444.86 rows=1622 width=48) (actual time=97.736..135.643 rows=108.00 loops=1)
+        Hash Cond: (s.patient_id = p.patient_id)
+        Buffers: shared hit=1204
+        ->  Subquery Scan on s  (cost=842.41..1207.55 rows=1622 width=24) (actual time=16.419..54.078 rows=108.00 loops=1)
+              Filter: ((s.previous_discharge IS NOT NULL) AND (s.admitted_at >= '2025-11-03 00:00:00'::timestamp without time zone) AND ((s.admitted_at - s.previous_discharge) <= '30 days'::interval))
+              Rows Removed by Filter: 9629
+              Buffers: shared hit=100
+              ->  WindowAgg  (cost=842.41..1037.15 rows=9737 width=24) (actual time=16.395..45.822 rows=9737.00 loops=1)
+                    Window: w1 AS (PARTITION BY admissions.patient_id ORDER BY admissions.admitted_at)
+                    Storage: Memory  Maximum Storage: 17kB
+                    Buffers: shared hit=100
+                    ->  Sort  (cost=842.41..866.75 rows=9737 width=24) (actual time=16.374..19.504 rows=9737.00 loops=1)
+                          Sort Key: admissions.patient_id, admissions.admitted_at
+                          Sort Method: quicksort  Memory: 841kB
+                          Buffers: shared hit=100
+                          ->  Seq Scan on admissions  (cost=0.00..197.37 rows=9737 width=24) (actual time=0.033..8.059 rows=9737.00 loops=1)
+                                Buffers: shared hit=100
+        ->  Hash  (cost=1604.00..1604.00 rows=50000 width=16) (actual time=80.440..80.442 rows=50000.00 loops=1)
+              Buckets: 65536  Batches: 1  Memory Usage: 2856kB
+              Buffers: shared hit=1104
+              ->  Seq Scan on patients p  (cost=0.00..1604.00 rows=50000 width=16) (actual time=0.045..35.796 rows=50000.00 loops=1)
+                    Buffers: shared hit=1104
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=7
+Planning Time: 0.679 ms
+Execution Time: 137.638 ms

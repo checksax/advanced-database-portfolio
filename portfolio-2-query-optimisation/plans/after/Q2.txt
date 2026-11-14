@@ -1,0 +1,26 @@
+-- Q2: Records: find a patient by surname and first-name prefix (case-insensitive)
+-- rows returned: 11
+-- wall-clock median of 7 runs: 0.52 ms
+
+SELECT patient_id, hospital_no, first_name, last_name, date_of_birth, phone
+FROM hospital.patients
+WHERE lower(last_name) = 'okafor'
+  AND lower(first_name) LIKE 'ng%'
+ORDER BY date_of_birth
+
+Sort  (cost=41.93..41.95 rows=10 width=44) (actual time=0.058..0.060 rows=11.00 loops=1)
+  Sort Key: date_of_birth
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=13
+  ->  Bitmap Heap Scan on patients  (cost=4.42..41.76 rows=10 width=44) (actual time=0.033..0.049 rows=11.00 loops=1)
+        Recheck Cond: (lower((last_name)::text) = 'okafor'::text)
+        Filter: (lower((first_name)::text) ~~ 'ng%'::text)
+        Heap Blocks: exact=11
+        Buffers: shared hit=13
+        ->  Bitmap Index Scan on idx_patients_name_search  (cost=0.00..4.42 rows=10 width=0) (actual time=0.012..0.013 rows=11.00 loops=1)
+              Index Cond: ((lower((last_name)::text) = 'okafor'::text) AND (lower((first_name)::text) ~>=~ 'ng'::text) AND (lower((first_name)::text) ~<~ 'nh'::text))
+              Index Searches: 1
+              Buffers: shared hit=2
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning Time: 0.174 ms
+Execution Time: 0.082 ms

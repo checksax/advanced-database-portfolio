@@ -1,0 +1,11 @@
+query,title,after_variant,rows,same_result,before_ms,after_ms,speedup,before_pages,after_pages,before_plan_root,after_plan_root
+Q1,Reception: a doctor's appointment list for tomorrow,Q1,10,True,153.531,0.783,196.2,2158,38,Gather Merge,Nested Loop
+Q2,Records: find a patient by surname and first-name prefix (case-insensitive),Q2,11,True,59.936,0.517,116.0,1104,13,Sort,Sort
+Q3,Clinic: full clinical history of one patient (newest first),Q3,356,True,13.942,17.601,0.8,2753,2755,Sort,Sort
+Q4,"Laboratory: outstanding work list (not yet resulted), STAT first",Q4,459,True,204.434,10.231,20.0,5230,3271,Gather Merge,Sort
+Q5,Finance: top 50 outstanding invoice balances (through the view),Q5-after,50,True,2657.429,333.634,8.0,23945,65643,Limit,Limit
+Q6,"Management: monthly revenue per department, last 12 months",Q6-after,72,True,1166.800,1.201,971.4,6615,2,GroupAggregate,Sort
+Q7,"Public health: weekly malaria diagnoses, last 13 weeks",Q7,14,True,329.940,64.257,5.1,3923,463,GroupAggregate,GroupAggregate
+Q8,"Clinical safety: critical lab results in the last 7 days, with patient phone",Q8,76,True,189.273,7.975,23.7,2445,893,Gather Merge,Nested Loop
+Q9,Pharmacy: 30-day consumption per drug and days of stock left,Q9,20,True,249.288,311.030,0.8,3760,3915,Sort,Sort
+Q10,"Quality: readmissions within 30 days of discharge, last 12 months",Q10,108,True,108.523,108.071,1.0,1204,1166,Sort,Sort

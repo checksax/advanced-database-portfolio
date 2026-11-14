@@ -1,0 +1,39 @@
+-- Q1: Reception: a doctor's appointment list for tomorrow
+-- rows returned: 10
+-- wall-clock median of 7 runs: 153.53 ms
+
+SELECT a.scheduled_start,
+       a.status,
+       p.hospital_no,
+       p.first_name || ' ' || p.last_name AS patient
+FROM hospital.appointments a
+JOIN hospital.patients p ON p.patient_id = a.patient_id
+WHERE a.doctor_id = 23
+  AND a.scheduled_start >= '2026-11-04'
+  AND a.scheduled_start <  '2026-11-05'
+ORDER BY a.scheduled_start
+
+Gather Merge  (cost=5209.14..5209.48 rows=3 width=61) (actual time=108.492..136.151 rows=10.00 loops=1)
+  Workers Planned: 1
+  Workers Launched: 1
+  Buffers: shared hit=2158
+  ->  Sort  (cost=4209.13..4209.13 rows=2 width=61) (actual time=39.082..39.084 rows=5.00 loops=2)
+        Sort Key: a.scheduled_start
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=2158
+        Worker 0:  Sort Method: quicksort  Memory: 25kB
+        ->  Nested Loop  (cost=0.29..4209.12 rows=2 width=61) (actual time=36.749..38.990 rows=5.00 loops=2)
+              Buffers: shared hit=2150
+              ->  Parallel Seq Scan on appointments a  (cost=0.00..4192.49 rows=2 width=21) (actual time=36.721..38.920 rows=5.00 loops=2)
+                    Filter: ((scheduled_start >= '2026-11-04 00:00:00'::timestamp without time zone) AND (scheduled_start < '2026-11-05 00:00:00'::timestamp without time zone) AND (doctor_id = 23))
+                    Rows Removed by Filter: 100659
+                    Buffers: shared hit=2120
+              ->  Index Scan using patients_pkey on patients p  (cost=0.29..8.31 rows=1 width=28) (actual time=0.011..0.011 rows=1.00 loops=10)
+                    Index Cond: (patient_id = a.patient_id)
+                    Index Searches: 10
+                    Buffers: shared hit=30
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.400 ms
+Execution Time: 136.290 ms

@@ -1,0 +1,27 @@
+Phase 1: baseline (Portfolio 1 indexes only)
+  before Q1       153.53 ms      2158 pages  rows=10
+  before Q2        59.94 ms      1104 pages  rows=11
+  before Q3        13.94 ms      2753 pages  rows=356
+  before Q4       204.43 ms      5230 pages  rows=459
+  before Q5      2657.43 ms     23945 pages  rows=50
+  before Q6      1166.80 ms      6615 pages  rows=72
+  before Q7       329.94 ms      3923 pages  rows=14
+  before Q8       189.27 ms      2445 pages  rows=76
+  before Q9       249.29 ms      3760 pages  rows=20
+  before Q10      108.52 ms      1204 pages  rows=108
+  write  invoice_items +50,000 rows     4859.4 ms
+  write  encounters +20,000 rows        2818.8 ms
+Phase 2: applying optimisations
+  after  Q1         0.78 ms        38 pages  rows=10
+  after  Q2         0.52 ms        13 pages  rows=11
+  after  Q3        17.60 ms      2755 pages  rows=356
+  after  Q4        10.23 ms      3271 pages  rows=459
+  after  Q5       333.63 ms     65643 pages  rows=50
+  after  Q6         1.20 ms         2 pages  rows=72
+  after  Q7        64.26 ms       463 pages  rows=14
+  after  Q8         7.97 ms       893 pages  rows=76
+  after  Q9       311.03 ms      3915 pages  rows=20
+  after  Q10      108.07 ms      1166 pages  rows=108
+  write  invoice_items +50,000 rows     4499.0 ms
+  write  encounters +20,000 rows        4787.7 ms
+Results written to C:\Users\ishom\Downloads\Advanced database portfolio\portfolio-2-query-optimisation\results

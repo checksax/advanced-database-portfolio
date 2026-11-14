@@ -1,0 +1,59 @@
+-- Q3: Clinic: full clinical history of one patient (newest first)
+-- rows returned: 356
+-- wall-clock median of 7 runs: 13.94 ms
+
+SELECT e.encounter_date,
+       e.encounter_type,
+       s.last_name  AS doctor,
+       d.icd10_code,
+       c.description AS diagnosis,
+       d.diagnosis_type
+FROM hospital.patients p
+JOIN hospital.encounters  e ON e.patient_id = p.patient_id
+JOIN hospital.staff       s ON s.staff_id = e.doctor_id
+LEFT JOIN hospital.diagnoses   d ON d.encounter_id = e.encounter_id
+LEFT JOIN hospital.icd10_codes c ON c.code = d.icd10_code
+WHERE p.hospital_no = 'SGH-0000001'
+ORDER BY e.encounter_date DESC
+
+Sort  (cost=34.57..34.58 rows=4 width=66) (actual time=10.220..10.269 rows=356.00 loops=1)
+  Sort Key: e.encounter_date DESC
+  Sort Method: quicksort  Memory: 55kB
+  Buffers: shared hit=2753
+  ->  Nested Loop Left Join  (cost=5.33..34.53 rows=4 width=66) (actual time=2.719..9.812 rows=356.00 loops=1)
+        Buffers: shared hit=2753
+        ->  Nested Loop  (cost=4.77..32.59 rows=3 width=28) (actual time=2.496..4.509 rows=293.00 loops=1)
+              Buffers: shared hit=867
+              ->  Nested Loop  (cost=4.62..32.09 rows=3 width=26) (actual time=2.458..3.221 rows=293.00 loops=1)
+                    Buffers: shared hit=281
+                    ->  Index Scan using patients_hospital_no_key on patients p  (cost=0.29..8.31 rows=1 width=4) (actual time=0.029..0.030 rows=1.00 loops=1)
+                          Index Cond: ((hospital_no)::text = 'SGH-0000001'::text)
+                          Index Searches: 1
+                          Buffers: shared hit=3
+                    ->  Bitmap Heap Scan on encounters e  (cost=4.33..23.74 rows=5 width=30) (actual time=2.422..2.975 rows=293.00 loops=1)
+                          Recheck Cond: (p.patient_id = patient_id)
+                          Heap Blocks: exact=276
+                          Buffers: shared hit=278
+                          ->  Bitmap Index Scan on idx_encounters_patient  (cost=0.00..4.33 rows=5 width=0) (actual time=0.084..0.084 rows=293.00 loops=1)
+                                Index Cond: (patient_id = p.patient_id)
+                                Index Searches: 1
+                                Buffers: shared hit=2
+              ->  Index Scan using staff_pkey on staff s  (cost=0.15..0.17 rows=1 width=10) (actual time=0.003..0.003 rows=1.00 loops=293)
+                    Index Cond: (staff_id = e.doctor_id)
+                    Index Searches: 293
+                    Buffers: shared hit=586
+        ->  Nested Loop Left Join  (cost=0.56..0.64 rows=1 width=46) (actual time=0.015..0.017 rows=1.22 loops=293)
+              Buffers: shared hit=1886
+              ->  Index Scan using idx_diagnoses_encounter on diagnoses d  (cost=0.42..0.48 rows=1 width=17) (actual time=0.006..0.006 rows=1.22 loops=293)
+                    Index Cond: (encounter_id = e.encounter_id)
+                    Index Searches: 293
+                    Buffers: shared hit=1174
+              ->  Index Scan using icd10_codes_pkey on icd10_codes c  (cost=0.14..0.16 rows=1 width=34) (actual time=0.006..0.007 rows=1.00 loops=356)
+                    Index Cond: ((code)::text = (d.icd10_code)::text)
+                    Index Searches: 356
+                    Buffers: shared hit=712
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=40
+Planning Time: 1.603 ms
+Execution Time: 10.390 ms

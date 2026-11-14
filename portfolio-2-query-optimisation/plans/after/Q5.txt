@@ -1,0 +1,53 @@
+-- Q5-after: Finance: same result, rewritten to aggregate only unpaid invoices
+-- rows returned: 50
+-- wall-clock median of 7 runs: 333.63 ms
+
+-- Only 'Unpaid'/'Partial' invoices can have a balance (verified in Portfolio 1:
+-- 0 'Paid' invoices with balance left), so filter first and aggregate per
+-- invoice with LATERAL subqueries instead of aggregating every row in the view.
+SELECT i.invoice_no,
+       i.patient_id,
+       it.total                         AS total_amount,
+       COALESCE(pm.paid, 0)             AS amount_paid,
+       it.total - COALESCE(pm.paid, 0)  AS balance_due
+FROM hospital.invoices i
+CROSS JOIN LATERAL (SELECT SUM(line_total) AS total
+                    FROM hospital.invoice_items ii WHERE ii.invoice_id = i.invoice_id) it
+CROSS JOIN LATERAL (SELECT SUM(amount) AS paid
+                    FROM hospital.payments py WHERE py.invoice_id = i.invoice_id) pm
+WHERE i.status IN ('Unpaid', 'Partial')
+  AND it.total - COALESCE(pm.paid, 0) > 0
+ORDER BY balance_due DESC
+LIMIT 50
+
+Limit  (cost=184187.62..184187.75 rows=50 width=117) (actual time=552.513..552.532 rows=50.00 loops=1)
+  Buffers: shared hit=65643
+  ->  Sort  (cost=184187.62..184196.62 rows=3598 width=117) (actual time=552.512..552.521 rows=50.00 loops=1)
+        Sort Key: (((sum(ii.line_total)) - COALESCE((sum(py.amount)), '0'::numeric))) DESC
+        Sort Method: top-N heapsort  Memory: 31kB
+        Buffers: shared hit=65643
+        ->  Nested Loop  (cost=17.26..184068.10 rows=3598 width=117) (actual time=0.100..526.793 rows=10642.00 loops=1)
+              Join Filter: (((sum(ii.line_total)) - COALESCE((sum(py.amount)), '0'::numeric)) > '0'::numeric)
+              Buffers: shared hit=65643
+              ->  Nested Loop  (cost=8.79..92445.03 rows=10794 width=57) (actual time=0.076..306.050 rows=10642.00 loops=1)
+                    Buffers: shared hit=33708
+                    ->  Index Scan using idx_invoices_open on invoices i  (cost=0.29..399.20 rows=10794 width=25) (actual time=0.038..20.074 rows=10642.00 loops=1)
+                          Index Searches: 1
+                          Buffers: shared hit=1654
+                    ->  Aggregate  (cost=8.51..8.52 rows=1 width=32) (actual time=0.024..0.025 rows=1.00 loops=10642)
+                          Buffers: shared hit=32054
+                          ->  Index Only Scan using idx_invoice_items_inv_total on invoice_items ii  (cost=0.42..8.50 rows=4 width=5) (actual time=0.015..0.017 rows=3.86 loops=10642)
+                                Index Cond: (invoice_id = i.invoice_id)
+                                Heap Fetches: 2
+                                Index Searches: 10642
+                                Buffers: shared hit=32054
+              ->  Aggregate  (cost=8.46..8.47 rows=1 width=32) (actual time=0.016..0.016 rows=1.00 loops=10642)
+                    Buffers: shared hit=31935
+                    ->  Index Only Scan using idx_payments_inv_amount on payments py  (cost=0.42..8.46 rows=2 width=6) (actual time=0.008..0.008 rows=0.79 loops=10642)
+                          Index Cond: (invoice_id = i.invoice_id)
+                          Heap Fetches: 0
+                          Index Searches: 10642
+                          Buffers: shared hit=31935
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning Time: 0.708 ms
+Execution Time: 552.635 ms

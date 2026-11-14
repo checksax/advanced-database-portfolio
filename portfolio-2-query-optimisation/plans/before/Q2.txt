@@ -1,0 +1,21 @@
+-- Q2: Records: find a patient by surname and first-name prefix (case-insensitive)
+-- rows returned: 11
+-- wall-clock median of 7 runs: 59.94 ms
+
+SELECT patient_id, hospital_no, first_name, last_name, date_of_birth, phone
+FROM hospital.patients
+WHERE lower(last_name) = 'okafor'
+  AND lower(first_name) LIKE 'ng%'
+ORDER BY date_of_birth
+
+Sort  (cost=2104.01..2104.02 rows=1 width=44) (actual time=53.171..53.174 rows=11.00 loops=1)
+  Sort Key: date_of_birth
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1104
+  ->  Seq Scan on patients  (cost=0.00..2104.00 rows=1 width=44) (actual time=0.154..53.123 rows=11.00 loops=1)
+        Filter: ((lower((first_name)::text) ~~ 'ng%'::text) AND (lower((last_name)::text) = 'okafor'::text))
+        Rows Removed by Filter: 49989
+        Buffers: shared hit=1104
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning Time: 0.120 ms
+Execution Time: 53.203 ms

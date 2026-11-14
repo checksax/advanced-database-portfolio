@@ -1,0 +1,53 @@
+-- Q4: Laboratory: outstanding work list (not yet resulted), STAT first
+-- rows returned: 459
+-- wall-clock median of 7 runs: 10.23 ms
+
+SELECT lo.lab_order_id,
+       lo.priority,
+       lo.ordered_at,
+       t.test_code,
+       p.hospital_no,
+       lo.status
+FROM hospital.lab_orders lo
+JOIN hospital.lab_tests  t ON t.test_id = lo.test_id
+JOIN hospital.encounters e ON e.encounter_id = lo.encounter_id
+JOIN hospital.patients   p ON p.patient_id = e.patient_id
+WHERE lo.status IN ('Ordered', 'Collected')
+ORDER BY CASE lo.priority WHEN 'STAT' THEN 1 WHEN 'Urgent' THEN 2 ELSE 3 END,
+         lo.ordered_at
+
+Sort  (cost=3254.55..3255.60 rows=423 width=48) (actual time=3.807..3.837 rows=459.00 loops=1)
+  Sort Key: (CASE lo.priority WHEN 'STAT'::text THEN 1 WHEN 'Urgent'::text THEN 2 ELSE 3 END), lo.ordered_at
+  Sort Method: quicksort  Memory: 57kB
+  Buffers: shared hit=3271
+  ->  Nested Loop  (cost=1.13..3236.09 rows=423 width=48) (actual time=0.043..3.278 rows=459.00 loops=1)
+        Buffers: shared hit=3271
+        ->  Nested Loop  (cost=0.84..3091.73 rows=423 width=36) (actual time=0.037..1.825 rows=459.00 loops=1)
+              Buffers: shared hit=1894
+              ->  Nested Loop  (cost=0.69..3078.68 rows=423 width=36) (actual time=0.028..1.464 rows=459.00 loops=1)
+                    Buffers: shared hit=1866
+                    ->  Index Scan using idx_lab_orders_outstanding on lab_orders lo  (cost=0.27..29.62 rows=423 width=36) (actual time=0.017..0.136 rows=459.00 loops=1)
+                          Index Searches: 1
+                          Buffers: shared hit=30
+                    ->  Index Scan using encounters_pkey on encounters e  (cost=0.42..7.21 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=459)
+                          Index Cond: (encounter_id = lo.encounter_id)
+                          Index Searches: 459
+                          Buffers: shared hit=1836
+              ->  Memoize  (cost=0.15..0.19 rows=1 width=8) (actual time=0.000..0.000 rows=1.00 loops=459)
+                    Cache Key: lo.test_id
+                    Cache Mode: logical
+                    Hits: 445  Misses: 14  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+                    Buffers: shared hit=28
+                    ->  Index Scan using lab_tests_pkey on lab_tests t  (cost=0.14..0.18 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=14)
+                          Index Cond: (test_id = lo.test_id)
+                          Index Searches: 14
+                          Buffers: shared hit=28
+        ->  Index Scan using patients_pkey on patients p  (cost=0.29..0.34 rows=1 width=16) (actual time=0.003..0.003 rows=1.00 loops=459)
+              Index Cond: (patient_id = e.patient_id)
+              Index Searches: 459
+              Buffers: shared hit=1377
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=200
+Planning Time: 1.248 ms
+Execution Time: 3.968 ms

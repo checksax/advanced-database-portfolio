@@ -1,0 +1,52 @@
+-- Q10: Quality: readmissions within 30 days of discharge, last 12 months
+-- rows returned: 108
+-- wall-clock median of 7 runs: 108.07 ms
+
+WITH stays AS (
+    SELECT patient_id,
+           admission_id,
+           admitted_at,
+           LAG(discharged_at) OVER (PARTITION BY patient_id ORDER BY admitted_at) AS previous_discharge
+    FROM hospital.admissions
+)
+SELECT p.hospital_no,
+       s.admission_id,
+       s.previous_discharge,
+       s.admitted_at,
+       s.admitted_at - s.previous_discharge AS gap
+FROM stays s
+JOIN hospital.patients p ON p.patient_id = s.patient_id
+WHERE s.previous_discharge IS NOT NULL
+  AND s.admitted_at - s.previous_discharge <= INTERVAL '30 days'
+  AND s.admitted_at >= '2025-11-03'
+ORDER BY gap
+
+Sort  (cost=3062.93..3066.98 rows=1622 width=48) (actual time=107.646..107.664 rows=108.00 loops=1)
+  Sort Key: ((s.admitted_at - s.previous_discharge))
+  Sort Method: quicksort  Memory: 31kB
+  Buffers: shared hit=1166
+  ->  Hash Join  (cost=2229.28..2976.45 rows=1622 width=48) (actual time=69.742..107.446 rows=108.00 loops=1)
+        Hash Cond: (s.patient_id = p.patient_id)
+        Buffers: shared hit=1166
+        ->  Subquery Scan on s  (cost=0.29..739.13 rows=1622 width=24) (actual time=0.069..37.521 rows=108.00 loops=1)
+              Filter: ((s.previous_discharge IS NOT NULL) AND (s.admitted_at >= '2025-11-03 00:00:00'::timestamp without time zone) AND ((s.admitted_at - s.previous_discharge) <= '30 days'::interval))
+              Rows Removed by Filter: 9629
+              Buffers: shared hit=62
+              ->  WindowAgg  (cost=0.29..568.74 rows=9737 width=24) (actual time=0.045..33.791 rows=9737.00 loops=1)
+                    Window: w1 AS (PARTITION BY admissions.patient_id ORDER BY admissions.admitted_at)
+                    Storage: Memory  Maximum Storage: 17kB
+                    Buffers: shared hit=62
+                    ->  Index Only Scan using idx_admissions_patient_time on admissions  (cost=0.29..398.34 rows=9737 width=24) (actual time=0.024..6.632 rows=9737.00 loops=1)
+                          Heap Fetches: 97
+                          Index Searches: 1
+                          Buffers: shared hit=62
+        ->  Hash  (cost=1604.00..1604.00 rows=50000 width=16) (actual time=69.063..69.064 rows=50000.00 loops=1)
+              Buckets: 65536  Batches: 1  Memory Usage: 2856kB
+              Buffers: shared hit=1104
+              ->  Seq Scan on patients p  (cost=0.00..1604.00 rows=50000 width=16) (actual time=0.036..33.223 rows=50000.00 loops=1)
+                    Buffers: shared hit=1104
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=7
+Planning Time: 0.644 ms
+Execution Time: 110.638 ms

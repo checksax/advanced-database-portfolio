@@ -1,0 +1,187 @@
+SET
+SET
+Timing is on.
+=== A1. Build a range-partitioned copy of appointments (one partition per quarter) ===
+psql:sql/04_advanced_techniques.sql:18: NOTICE:  table "appointments_part" does not exist, skipping
+DROP TABLE
+Time: 11.962 ms
+psql:sql/04_advanced_techniques.sql:19: NOTICE:  table "appointments_2024_q4_archive" does not exist, skipping
+DROP TABLE
+Time: 0.465 ms
+CREATE TABLE
+Time: 268.190 ms
+DO
+Time: 146.738 ms
+INSERT 0 201328
+Time: 3718.641 ms (00:03.719)
+CREATE INDEX
+Time: 632.646 ms
+ANALYZE
+Time: 1503.661 ms (00:01.504)
+--- rows per partition
+      partition       | rows  
+----------------------+-------
+ appointments_2024_q4 | 14944
+ appointments_2025_q1 | 22841
+ appointments_2025_q2 | 23127
+ appointments_2025_q3 | 23681
+ appointments_2025_q4 | 23557
+ appointments_2026_q1 | 22988
+ appointments_2026_q2 | 23111
+ appointments_2026_q3 | 23498
+ appointments_2026_q4 | 23581
+(9 rows)
+
+Time: 450.288 ms
+=== A2. Monthly no-show report: unpartitioned table (PG18 skip scan on idx_appt_doctor_start, one search per doctor) ===
+                                                                                   QUERY PLAN                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate (actual time=52.687..52.691 rows=3.00 loops=1)
+   Group Key: status
+   Batches: 1  Memory Usage: 32kB
+   Buffers: shared hit=215 read=133
+   ->  Bitmap Heap Scan on appointments (actual time=39.186..44.100 rows=7892.00 loops=1)
+         Recheck Cond: ((scheduled_start >= '2026-10-01 00:00:00'::timestamp without time zone) AND (scheduled_start < '2026-11-01 00:00:00'::timestamp without time zone))
+         Heap Blocks: exact=82
+         Buffers: shared hit=215 read=133
+         ->  Bitmap Index Scan on idx_appt_doctor_start (actual time=39.125..39.126 rows=7892.00 loops=1)
+               Index Cond: ((scheduled_start >= '2026-10-01 00:00:00'::timestamp without time zone) AND (scheduled_start < '2026-11-01 00:00:00'::timestamp without time zone))
+               Index Searches: 65
+               Buffers: shared hit=133 read=133
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 3.415 ms
+ Execution Time: 53.282 ms
+(16 rows)
+
+Time: 65.826 ms
+=== A3. Same report on the partitioned table: partition pruning reads ONE quarter ===
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate (actual time=42.366..42.369 rows=3.00 loops=1)
+   Group Key: appointments_part.status
+   Batches: 1  Memory Usage: 32kB
+   Buffers: shared hit=243
+   ->  Seq Scan on appointments_2026_q4 appointments_part (actual time=0.046..25.528 rows=7892.00 loops=1)
+         Filter: ((scheduled_start >= '2026-10-01 00:00:00'::timestamp without time zone) AND (scheduled_start < '2026-11-01 00:00:00'::timestamp without time zone))
+         Rows Removed by Filter: 15689
+         Buffers: shared hit=243
+ Planning:
+   Buffers: shared hit=32
+ Planning Time: 1.410 ms
+ Execution Time: 42.434 ms
+(12 rows)
+
+Time: 44.391 ms
+=== A4. Pruning also works at run time (value only known when the query executes) ===
+PREPARE
+Time: 1.313 ms
+SET
+Time: 0.217 ms
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate (actual time=31.283..31.287 rows=3.00 loops=1)
+   Group Key: appointments_part.status
+   Batches: 1  Memory Usage: 32kB
+   Buffers: shared hit=83 read=92
+   ->  Append (actual time=15.254..21.166 rows=7892.00 loops=1)
+         Buffers: shared hit=83 read=92
+         Subplans Removed: 8
+         ->  Bitmap Heap Scan on appointments_2026_q4 appointments_part_1 (actual time=15.253..19.540 rows=7892.00 loops=1)
+               Recheck Cond: ((scheduled_start >= $1) AND (scheduled_start < ($1 + '1 mon'::interval)))
+               Heap Blocks: exact=81
+               Buffers: shared hit=83 read=92
+               ->  Bitmap Index Scan on appointments_2026_q4_doctor_id_scheduled_start_idx (actual time=15.185..15.185 rows=7892.00 loops=1)
+                     Index Cond: ((scheduled_start >= $1) AND (scheduled_start < ($1 + '1 mon'::interval)))
+                     Index Searches: 3
+                     Buffers: shared hit=2 read=92
+ Planning:
+   Buffers: shared hit=96
+ Planning Time: 1.934 ms
+ Execution Time: 31.401 ms
+(19 rows)
+
+Time: 33.974 ms
+RESET
+Time: 0.851 ms
+DEALLOCATE
+Time: 0.181 ms
+=== B. Archiving: detach the oldest quarter (metadata-only, no row copying) ===
+--- for comparison, removing the same rows with DELETE (row by row, then rolled back):
+BEGIN
+Time: 0.151 ms
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Delete on appointments_part (actual time=50.582..50.584 rows=0.00 loops=1)
+   Delete on appointments_2024_q4 appointments_part_1
+   Buffers: shared hit=15098
+   ->  Seq Scan on appointments_2024_q4 appointments_part_1 (actual time=0.024..12.319 rows=14944.00 loops=1)
+         Filter: (scheduled_start < '2025-01-01 00:00:00'::timestamp without time zone)
+         Buffers: shared hit=154
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.571 ms
+ Execution Time: 56.413 ms
+(10 rows)
+
+Time: 58.216 ms
+ROLLBACK
+Time: 0.925 ms
+--- detach (instant):
+ALTER TABLE
+Time: 8.066 ms
+ALTER TABLE
+Time: 4.383 ms
+ rows_now_in_archive_table 
+---------------------------
+                     14944
+(1 row)
+
+Time: 10.303 ms
+=== C. Materialized view maintenance cost ===
+--- plain refresh (blocks readers while it runs):
+REFRESH MATERIALIZED VIEW
+Time: 3690.280 ms (00:03.690)
+--- concurrent refresh (readers keep working; needs the unique index; slower):
+REFRESH MATERIALIZED VIEW
+Time: 2018.556 ms (00:02.019)
+=== D1. Planner statistics for columns used in the workload ===
+  tablename   |    attname     | n_distinct | correlation |                                                                                    most_common_values                                                                                    
+--------------+----------------+------------+-------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ appointments | doctor_id      |         64 |       0.023 | {19,35,29,64,16,10,8,47,4,42,41,49,39,26,38,12,57,18,32,50,14,1,5,34,51,13,7,6,61,2,17,21,23,27,11,22,60,15,20,53,48,62,33,52,46,31,24,37,54,45,3,55,56,58,59,44,9,43,36,25,63,28,30,40}
+ encounters   | encounter_date | -0.6426889 |       1.000 | 
+ invoices     | status         |          3 |       0.885 | {Paid,Partial,Unpaid}
+ lab_orders   | status         |          4 |       0.956 | {Completed,Cancelled,Ordered,Collected}
+ lab_results  | flag           |          4 |       0.365 | {Normal,High,Low,Critical}
+(5 rows)
+
+Time: 71.487 ms
+=== D2. Estimation error: planner guesses 1/3 of rows pass a filter on a computed column ===
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=722.91..722.92 rows=1 width=8) (actual rows=1.00 loops=1)
+   Buffers: shared hit=62
+   ->  Subquery Scan on stays  (cost=0.29..714.79 rows=3246 width=0) (actual rows=203.00 loops=1)
+         Filter: ((stays.admitted_at - stays.previous_discharge) <= '30 days'::interval)
+         Rows Removed by Filter: 9534
+         Buffers: shared hit=62
+         ->  WindowAgg  (cost=0.29..568.74 rows=9737 width=20) (actual rows=9737.00 loops=1)
+               Window: w1 AS (PARTITION BY admissions.patient_id ORDER BY admissions.admitted_at)
+               Storage: Memory  Maximum Storage: 17kB
+               Buffers: shared hit=62
+               ->  Index Only Scan using idx_admissions_patient_time on admissions  (cost=0.29..398.34 rows=9737 width=20) (actual rows=9737.00 loops=1)
+                     Heap Fetches: 97
+                     Index Searches: 1
+                     Buffers: shared hit=62
+ Planning:
+   Buffers: shared hit=83
+ Planning Time: 8.026 ms
+ Execution Time: 28.959 ms
+(18 rows)
+
+Time: 45.092 ms
+DROP TABLE
+Time: 254.287 ms
+DROP TABLE
+Time: 35.597 ms
+=== Done ===

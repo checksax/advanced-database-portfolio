@@ -1,0 +1,56 @@
+-- Q4: Laboratory: outstanding work list (not yet resulted), STAT first
+-- rows returned: 459
+-- wall-clock median of 7 runs: 204.43 ms
+
+SELECT lo.lab_order_id,
+       lo.priority,
+       lo.ordered_at,
+       t.test_code,
+       p.hospital_no,
+       lo.status
+FROM hospital.lab_orders lo
+JOIN hospital.lab_tests  t ON t.test_id = lo.test_id
+JOIN hospital.encounters e ON e.encounter_id = lo.encounter_id
+JOIN hospital.patients   p ON p.patient_id = e.patient_id
+WHERE lo.status IN ('Ordered', 'Collected')
+ORDER BY CASE lo.priority WHEN 'STAT' THEN 1 WHEN 'Urgent' THEN 2 ELSE 3 END,
+         lo.ordered_at
+
+Gather Merge  (cost=6675.59..6732.69 rows=501 width=48) (actual time=202.757..234.791 rows=459.00 loops=1)
+  Workers Planned: 1
+  Workers Launched: 1
+  Buffers: shared hit=5230
+  ->  Sort  (cost=5675.58..5676.32 rows=295 width=48) (actual time=67.657..67.697 rows=229.50 loops=2)
+        Sort Key: (CASE lo.priority WHEN 'STAT'::text THEN 1 WHEN 'Urgent'::text THEN 2 ELSE 3 END), lo.ordered_at
+        Sort Method: quicksort  Memory: 57kB
+        Buffers: shared hit=5230
+        Worker 0:  Sort Method: quicksort  Memory: 25kB
+        ->  Nested Loop  (cost=2.05..5663.48 rows=295 width=48) (actual time=64.069..67.187 rows=229.50 loops=2)
+              Buffers: shared hit=5214
+              ->  Nested Loop  (cost=1.76..5562.80 rows=295 width=36) (actual time=64.054..65.823 rows=229.50 loops=2)
+                    Buffers: shared hit=3837
+                    ->  Hash Join  (cost=1.34..3582.48 rows=295 width=36) (actual time=64.040..64.494 rows=229.50 loops=2)
+                          Hash Cond: (lo.test_id = t.test_id)
+                          Buffers: shared hit=2001
+                          ->  Parallel Seq Scan on lab_orders lo  (cost=0.00..3580.15 rows=295 width=36) (actual time=63.821..64.027 rows=229.50 loops=2)
+                                Filter: ((status)::text = ANY ('{Ordered,Collected}'::text[]))
+                                Rows Removed by Filter: 107220
+                                Buffers: shared hit=2000
+                          ->  Hash  (cost=1.15..1.15 rows=15 width=8) (actual time=0.423..0.424 rows=15.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on lab_tests t  (cost=0.00..1.15 rows=15 width=8) (actual time=0.217..0.355 rows=15.00 loops=1)
+                                      Buffers: shared hit=1
+                    ->  Index Scan using encounters_pkey on encounters e  (cost=0.42..6.71 rows=1 width=8) (actual time=0.004..0.004 rows=1.00 loops=459)
+                          Index Cond: (encounter_id = lo.encounter_id)
+                          Index Searches: 459
+                          Buffers: shared hit=1836
+              ->  Index Scan using patients_pkey on patients p  (cost=0.29..0.34 rows=1 width=16) (actual time=0.004..0.004 rows=1.00 loops=459)
+                    Index Cond: (patient_id = e.patient_id)
+                    Index Searches: 459
+                    Buffers: shared hit=1377
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=33
+Planning Time: 1.700 ms
+Execution Time: 235.055 ms

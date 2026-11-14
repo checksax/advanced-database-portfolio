@@ -1,0 +1,56 @@
+-- Q8: Clinical safety: critical lab results in the last 7 days, with patient phone
+-- rows returned: 76
+-- wall-clock median of 7 runs: 7.97 ms
+
+SELECT r.resulted_at,
+       t.name AS test,
+       COALESCE(r.result_value::text, r.result_text) AS result,
+       p.hospital_no,
+       p.phone
+FROM hospital.lab_results r
+JOIN hospital.lab_orders  lo ON lo.lab_order_id = r.lab_order_id
+JOIN hospital.lab_tests   t  ON t.test_id = lo.test_id
+JOIN hospital.encounters  e  ON e.encounter_id = lo.encounter_id
+JOIN hospital.patients    p  ON p.patient_id = e.patient_id
+WHERE r.flag = 'Critical'
+  AND r.resulted_at >= '2026-10-27'
+ORDER BY r.resulted_at DESC
+
+Nested Loop  (cost=1.56..813.09 rows=89 width=86) (actual time=0.142..2.272 rows=76.00 loops=1)
+  Buffers: shared hit=893
+  ->  Nested Loop  (cost=1.27..782.72 rows=89 width=52) (actual time=0.093..1.598 rows=76.00 loops=1)
+        Buffers: shared hit=665
+        ->  Nested Loop  (cost=0.85..737.32 rows=89 width=52) (actual time=0.078..0.989 rows=76.00 loops=1)
+              Buffers: shared hit=361
+              ->  Nested Loop  (cost=0.71..732.78 rows=89 width=34) (actual time=0.060..0.768 rows=76.00 loops=1)
+                    Buffers: shared hit=351
+                    ->  Index Scan using idx_lab_results_critical on lab_results r  (cost=0.29..9.84 rows=89 width=30) (actual time=0.038..0.131 rows=76.00 loops=1)
+                          Index Cond: (resulted_at >= '2026-10-27 00:00:00'::timestamp without time zone)
+                          Index Searches: 1
+                          Buffers: shared hit=47
+                    ->  Index Scan using lab_orders_pkey on lab_orders lo  (cost=0.42..8.12 rows=1 width=12) (actual time=0.006..0.006 rows=1.00 loops=76)
+                          Index Cond: (lab_order_id = r.lab_order_id)
+                          Index Searches: 76
+                          Buffers: shared hit=304
+              ->  Memoize  (cost=0.15..0.16 rows=1 width=26) (actual time=0.002..0.002 rows=1.00 loops=76)
+                    Cache Key: lo.test_id
+                    Cache Mode: logical
+                    Hits: 71  Misses: 5  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                    Buffers: shared hit=10
+                    ->  Index Scan using lab_tests_pkey on lab_tests t  (cost=0.14..0.15 rows=1 width=26) (actual time=0.005..0.005 rows=1.00 loops=5)
+                          Index Cond: (test_id = lo.test_id)
+                          Index Searches: 5
+                          Buffers: shared hit=10
+        ->  Index Scan using encounters_pkey on encounters e  (cost=0.42..0.51 rows=1 width=8) (actual time=0.006..0.006 rows=1.00 loops=76)
+              Index Cond: (encounter_id = lo.encounter_id)
+              Index Searches: 76
+              Buffers: shared hit=304
+  ->  Index Scan using patients_pkey on patients p  (cost=0.29..0.34 rows=1 width=28) (actual time=0.006..0.006 rows=1.00 loops=76)
+        Index Cond: (patient_id = e.patient_id)
+        Index Searches: 76
+        Buffers: shared hit=228
+Settings: search_path = 'hospital, public', jit = 'off'
+Planning:
+  Buffers: shared hit=216
+Planning Time: 3.396 ms
+Execution Time: 2.412 ms
