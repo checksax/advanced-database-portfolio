@@ -1,0 +1,133 @@
+# St. Grace Specialist Hospital - Advanced Database Portfolio
+# Local database stack for all five portfolio activities.
+#
+#   docker compose up -d                      # start everything
+#   docker compose ps                         # check status
+#   docker compose down                       # stop (data kept in volumes)
+#
+# Services
+#   postgres   - P1 design, P2 query optimisation, P3 transactions   (localhost:5432)
+#   pgadmin    - web UI for PostgreSQL                                (http://localhost:5050)
+#   mongo1-3   - P4 NoSQL + P5 replica set (rs0)                      (localhost:27017-27019)
+#   mongo-init - one-shot container that initiates the replica set
+#   redis      - P4 key-value examples (appointment queue, cache)     (localhost:6379)
+#   neo4j      - P4 graph model (referrals)                           (http://localhost:7474)
+
+name: hospital-db
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: hospital-postgres
+    environment:
+      POSTGRES_USER: hospital_admin
+      POSTGRES_PASSWORD: hospital_pass
+      POSTGRES_DB: stgrace_hospital
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    command: >
+      postgres
+        -c shared_preload_libraries=pg_stat_statements
+        -c track_io_timing=on
+        -c log_lock_waits=on
+        -c deadlock_timeout=1s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hospital_admin -d stgrace_hospital"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    container_name: hospital-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@stgrace.local
+      PGADMIN_DEFAULT_PASSWORD: hospital_pass
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  mongo1:
+    image: mongo:7.0
+    container_name: mongo1
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo1_data:/data/db
+
+  mongo2:
+    image: mongo:7.0
+    container_name: mongo2
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27018"]
+    ports:
+      - "27018:27018"
+    volumes:
+      - mongo2_data:/data/db
+
+  mongo3:
+    image: mongo:7.0
+    container_name: mongo3
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27019"]
+    ports:
+      - "27019:27019"
+    volumes:
+      - mongo3_data:/data/db
+
+  mongo-init:
+    image: mongo:7.0
+    container_name: mongo-init
+    depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
+    restart: "no"
+    entrypoint:
+      - bash
+      - -c
+      - |
+        sleep 5
+        mongosh --host mongo1:27017 --quiet --eval '
+          try { rs.status(); print("replica set already initiated"); }
+          catch (e) {
+            rs.initiate({
+              _id: "rs0",
+              members: [
+                { _id: 0, host: "mongo1:27017", priority: 2 },
+                { _id: 1, host: "mongo2:27018", priority: 1 },
+                { _id: 2, host: "mongo3:27019", priority: 1 }
+              ]
+            });
+            print("replica set rs0 initiated");
+          }'
+
+  redis:
+    image: redis:7.4
+    container_name: hospital-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  neo4j:
+    image: neo4j:5.24
+    container_name: hospital-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/hospital_pass
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  pg_data:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
+  redis_data:
+  neo4j_data:
